@@ -5,7 +5,7 @@ typedef StateGetter<T> = T Function();
 typedef Selector<T, U> = U Function(T state);
 
 /// The core store API that exposes state management methods
-abstract class Store<T> {
+abstract class SimpleStore<T> {
   /// Get the current state
   T get state;
 

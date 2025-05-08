@@ -1,5 +1,5 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:simple_store/src/store/store.dart' show Selector;
+import 'package:simple_store/src/store/simple_store.dart';
 import 'package:simple_store/src/store_provider.dart';
 
 /// Hook to subscribe to part of the store using a selector

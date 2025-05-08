@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
-import 'package:simple_store/src/store/store.dart';
+import 'package:simple_store/src/store/simple_store.dart';
 
 typedef StateCreator<T, StoreApi> = T Function(StoreApi store);
 
 /// A function that creates a store from a state creator function
 /// This is the main entry point for creating a store, inspired by Zustand's API
-Store<T> createStore<T>(StateCreator<T, Store<T>> creator) {
+SimpleStore<T> createStore<T>(StateCreator<T, SimpleStore<T>> creator) {
   // Create a mutable state holder
   final store = DefaultStore<T>();
 
@@ -16,7 +16,7 @@ Store<T> createStore<T>(StateCreator<T, Store<T>> creator) {
   return store;
 }
 
-class DefaultStore<T> extends ChangeNotifier implements Store<T> {
+class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
   late T _state;
   final List<StoreListener<T>> _listeners = [];
   bool _isNotifying = false;
