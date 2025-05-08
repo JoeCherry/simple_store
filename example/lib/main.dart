@@ -23,63 +23,43 @@ class BearState {
   int get hashCode => bears.hashCode ^ isLoading.hashCode;
 }
 
-// 2. Create the store using the zustand-like API
-final bearStore = createStore<BearState>((store) {
-  // Return the initial state and define actions
-  return BearState(bears: 0, isLoading: false);
-});
+// 2. Create the store using the zustand-like API with actions
+final bearStore = createStore<BearState>(
+  (store) => const BearState(bears: 0, isLoading: false),
+  actions: (store) => {
+    'increasePopulation': ([int by = 1]) {
+      store.setState((state) => state.copyWith(bears: state.bears + by));
+    },
+    'decreasePopulation': ([int by = 1]) {
+      store.setState((state) => state.copyWith(bears: state.bears - by));
+    },
+    'setLoading': (bool isLoading) {
+      store.setState((state) => state.copyWith(isLoading: isLoading));
+    },
+    'increaseBearPopulationAsync': () async {
+      store.setState((state) => state.copyWith(isLoading: true));
+      // Simulate API call
+      await Future.delayed(const Duration(seconds: 1));
+      store.setState((state) => state.copyWith(bears: state.bears + 5, isLoading: false));
+    },
+  },
+);
 
-// 3. Add action methods to manipulate the state
-extension BearStoreActions on SimpleStore<BearState> {
-  void increasePopulation([int by = 1]) {
-    setState((state) => state.copyWith(bears: state.bears + by));
-  }
+// 3. Create a custom hook for this specific store
+({
+  BearState state,
+  void Function() increase,
+  void Function() decrease,
+  Future<void> Function() increaseAsync,
+}) useBearStore() {
+  final state = useStore<BearState>();
 
-  void decreasePopulation([int by = 1]) {
-    setState((state) => state.copyWith(bears: state.bears - by));
-  }
-
-  void setLoading(bool isLoading) {
-    setState((state) => state.copyWith(isLoading: isLoading));
-  }
-
-  Future<void> increaseBearPopulationAsync() async {
-    setLoading(true);
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-    increasePopulation(5);
-    setLoading(false);
-  }
-}
-
-// 4. Create a custom hook for this specific store (Zustand style)
-final useBearStore = createHook<BearState, BearStoreHook>((store) {
-  return BearStoreHook(
-    bears: store.state.bears,
-    isLoading: store.state.isLoading,
-    increase: () => store.increasePopulation(),
-    decrease: () => store.decreasePopulation(),
-    increaseAsync: () => store.increaseBearPopulationAsync(),
+  return (
+    state: state,
+    increase: () => (bearStore as dynamic).increasePopulation(),
+    decrease: () => (bearStore as dynamic).decreasePopulation(),
+    increaseAsync: () => (bearStore as dynamic).increaseBearPopulationAsync(),
   );
-});
-
-class BearStoreHook {
-  final int bears;
-  final bool isLoading;
-  final Function increase;
-  final Function decrease;
-  final Function increaseAsync;
-
-  BearStoreHook({
-    required this.bears,
-    required this.isLoading,
-    required this.increase,
-    required this.decrease,
-    required this.increaseAsync,
-  });
-
-  // Computed property
-  bool get hasManyBears => bears >= 5;
 }
 
 // 5. Usage in a Flutter app
@@ -88,7 +68,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -103,16 +83,12 @@ class MyApp extends StatelessWidget {
 
 // 6. Using the hooks in a component
 class HomePage extends HookWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     // Use our custom bear store hook
-    final bear = useBearStore();
-
-    // Alternative approach with selector
-    // final bears = useStoreSelector<BearState, int>((state) => state.bears);
-    // final isLoading = useStoreSelector<BearState, bool>((state) => state.isLoading);
+    final store = useBearStore();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Bear Store')),
@@ -120,22 +96,22 @@ class HomePage extends HookWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Number of bears: ${bear.bears}', style: Theme.of(context).textTheme.headlineMedium),
-            if (bear.hasManyBears)
-              Text('That\'s a lot of bears!', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            Text('Number of bears: ${store.state.bears}', style: Theme.of(context).textTheme.headlineMedium),
+            if (store.state.bears >= 5)
+              const Text('That\'s a lot of bears!', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-            if (bear.isLoading) const CircularProgressIndicator() else const SizedBox.shrink(),
+            if (store.state.isLoading) const CircularProgressIndicator() else const SizedBox.shrink(),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton(onPressed: () => bear.decrease(), child: const Text('Decrease')),
+                ElevatedButton(onPressed: store.decrease, child: const Text('Decrease')),
                 const SizedBox(width: 16),
-                ElevatedButton(onPressed: () => bear.increase(), child: const Text('Increase')),
+                ElevatedButton(onPressed: store.increase, child: const Text('Increase')),
               ],
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: () => bear.increaseAsync(), child: const Text('Add bears async')),
+            ElevatedButton(onPressed: store.increaseAsync, child: const Text('Add bears async')),
           ],
         ),
       ),
