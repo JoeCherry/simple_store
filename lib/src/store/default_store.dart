@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:simple_store/src/store/simple_store.dart';
+import 'package:simple_store/src/store/store_actions.dart';
 
 typedef StateCreator<T, StoreApi> = T Function(StoreApi store);
 
 /// A wrapper class that provides type-safe access to store actions
-class StoreWithActions<T, A> {
+class StoreWithActions<T, A extends StoreActions<T>> {
   final SimpleStore<T> _store;
   final A actions;
 
@@ -22,7 +23,7 @@ class StoreWithActions<T, A> {
 
 /// A function that creates a store from a state creator function and actions
 /// This is the main entry point for creating a store, inspired by Zustand's API
-StoreWithActions<T, A> createStore<T, A>({
+StoreWithActions<T, A> createStore<T, A extends StoreActions<T>>({
   required StateCreator<T, SimpleStore<T>> state,
   required A Function(SimpleStore<T>) createActions,
 }) {
@@ -46,6 +47,20 @@ class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
 
   @override
   T get state => _state;
+
+  @override
+  int get listenerCount => _listeners.length;
+
+  /// Checks if a specific listener is currently subscribed
+  @override
+  bool hasListener(StoreListener<T> listener) => _listeners.contains(listener);
+
+  /// Removes a specific store listener from the store
+  /// Returns true if the listener was found and removed, false otherwise
+  @override
+  bool removeStoreListener(StoreListener<T> listener) {
+    return _listeners.remove(listener);
+  }
 
   @override
   void setState(T Function(T currentState) updater) {

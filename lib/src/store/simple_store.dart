@@ -29,4 +29,14 @@ abstract class SimpleStore<T> {
 
   /// Get the raw store implementation (for advanced usage)
   ChangeNotifier get api;
+
+  /// Returns the current number of active listeners
+  int get listenerCount;
+
+  /// Checks if a specific listener is currently subscribed
+  bool hasListener(StoreListener<T> listener);
+
+  /// Removes a specific store listener from the store
+  /// Returns true if the listener was found and removed, false otherwise
+  bool removeStoreListener(StoreListener<T> listener);
 }

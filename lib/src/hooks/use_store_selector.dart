@@ -1,9 +1,13 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:simple_store/src/store/simple_store.dart';
 import 'package:simple_store/src/store_provider.dart';
+import 'package:simple_store/src/store/store_actions.dart';
 
 /// Hook to subscribe to part of the store using a selector
-U useStoreSelector<T, A, U>(Selector<T, U> selector, {List<Object?>? dependencies}) {
+U useStoreSelector<T, A extends StoreActions<T>, U>(
+  Selector<T, U> selector, {
+  List<Object?>? dependencies,
+}) {
   final context = useContext();
   final store = StoreProvider.of<T, A>(context);
 
