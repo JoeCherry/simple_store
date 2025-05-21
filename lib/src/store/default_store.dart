@@ -2,34 +2,47 @@ import 'package:flutter/foundation.dart';
 import 'package:simple_store/src/store/simple_store.dart';
 
 typedef StateCreator<T, StoreApi> = T Function(StoreApi store);
-typedef ActionsCreator<T, StoreApi> = Map<String, Function> Function(StoreApi store);
 
-/// A function that creates a store from a state creator function and optional actions
+/// A wrapper class that provides type-safe access to store actions
+class StoreWithActions<T, A> {
+  final SimpleStore<T> _store;
+  final A actions;
+
+  StoreWithActions(this._store, this.actions);
+
+  T get state => _store.state;
+  void setState(T Function(T currentState) updater) => _store.setState(updater);
+  void setStateRaw(T nextState) => _store.setStateRaw(nextState);
+  Function subscribe(StoreListener<T> listener) => _store.subscribe(listener);
+  void destroy() => _store.destroy();
+  U select<U>(Selector<T, U> selector) => _store.select(selector);
+  StateGetter<T> getState() => _store.getState();
+  ChangeNotifier get api => _store.api;
+}
+
+/// A function that creates a store from a state creator function and actions
 /// This is the main entry point for creating a store, inspired by Zustand's API
-SimpleStore<T> createStore<T>(StateCreator<T, SimpleStore<T>> creator, {ActionsCreator<T, SimpleStore<T>>? actions}) {
+StoreWithActions<T, A> createStore<T, A>({
+  required StateCreator<T, SimpleStore<T>> state,
+  required A Function(SimpleStore<T>) createActions,
+}) {
   // Create a mutable state holder
   final store = DefaultStore<T>();
 
   // Use the creator function to initialize the store
-  final initialState = creator(store);
+  final initialState = state(store);
   store._state = initialState;
 
-  // If actions are provided, bind them to the store
-  if (actions != null) {
-    final actionMap = actions(store);
-    for (final entry in actionMap.entries) {
-      store._addAction(entry.key, entry.value);
-    }
-  }
+  // Create the strongly-typed actions object
+  final typedActions = createActions(store);
 
-  return store;
+  return StoreWithActions(store, typedActions);
 }
 
 class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
   late T _state;
   final List<StoreListener<T>> _listeners = [];
   bool _isNotifying = false;
-  final Map<String, Function> _actions = {};
 
   @override
   T get state => _state;
@@ -105,20 +118,4 @@ class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
 
   @override
   ChangeNotifier get api => this;
-
-  void _addAction(String name, Function action) {
-    _actions[name] = action;
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.isMethod) {
-      final name = invocation.memberName.toString().split('"')[1];
-      final action = _actions[name];
-      if (action != null) {
-        return Function.apply(action, invocation.positionalArguments, invocation.namedArguments);
-      }
-    }
-    return super.noSuchMethod(invocation);
-  }
 }

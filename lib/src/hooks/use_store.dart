@@ -1,10 +1,9 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:simple_store/src/store_provider.dart';
 
-/// Hook to use the store in function components
-T useStore<T>() {
+T useStore<T, A>() {
   final context = useContext();
-  final store = StoreProvider.of<T>(context);
+  final store = StoreProvider.of<T, A>(context);
 
   final state = useState<T>(store.state);
 

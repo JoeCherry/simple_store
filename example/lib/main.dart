@@ -23,26 +23,51 @@ class BearState {
   int get hashCode => bears.hashCode ^ isLoading.hashCode;
 }
 
-// 2. Create the store using the zustand-like API with actions
-final bearStore = createStore<BearState>(
-  (store) => const BearState(bears: 0, isLoading: false),
-  actions: (store) => {
-    'increasePopulation': ([int by = 1]) {
-      store.setState((state) => state.copyWith(bears: state.bears + by));
-    },
-    'decreasePopulation': ([int by = 1]) {
-      store.setState((state) => state.copyWith(bears: state.bears - by));
-    },
-    'setLoading': (bool isLoading) {
-      store.setState((state) => state.copyWith(isLoading: isLoading));
-    },
-    'increaseBearPopulationAsync': () async {
-      store.setState((state) => state.copyWith(isLoading: true));
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
-      store.setState((state) => state.copyWith(bears: state.bears + 5, isLoading: false));
-    },
-  },
+// Define the actions interface
+class BearActions {
+  final void Function([int by]) increasePopulation;
+  final void Function([int by]) decreasePopulation;
+  final void Function(bool) setLoading;
+  final Future<void> Function() increaseBearPopulationAsync;
+
+  BearActions({
+    required this.increasePopulation,
+    required this.decreasePopulation,
+    required this.setLoading,
+    required this.increaseBearPopulationAsync,
+  });
+}
+
+// Action implementations
+void increasePopulation(SimpleStore<BearState> store, [int by = 1]) {
+  store.setState((state) => state.copyWith(bears: state.bears + by));
+}
+
+void decreasePopulation(SimpleStore<BearState> store, [int by = 1]) {
+  store.setState((state) => state.copyWith(bears: state.bears - by));
+}
+
+void setLoading(SimpleStore<BearState> store, bool isLoading) {
+  store.setState((state) => state.copyWith(isLoading: isLoading));
+}
+
+Future<void> increaseBearPopulationAsync(SimpleStore<BearState> store) async {
+  setLoading(store, true);
+  // Simulate API call
+  await Future.delayed(const Duration(seconds: 1));
+  increasePopulation(store, 5);
+  setLoading(store, false);
+}
+
+// 2. Create the store using the type-safe API
+final bearStore = createStore<BearState, BearActions>(
+  state: (store) => const BearState(bears: 0, isLoading: false),
+  createActions: (store) => BearActions(
+    increasePopulation: ([int by = 1]) => increasePopulation(store, by),
+    decreasePopulation: ([int by = 1]) => decreasePopulation(store, by),
+    setLoading: (bool isLoading) => setLoading(store, isLoading),
+    increaseBearPopulationAsync: () => increaseBearPopulationAsync(store),
+  ),
 );
 
 // 3. Create a custom hook for this specific store
@@ -52,13 +77,13 @@ final bearStore = createStore<BearState>(
   void Function() decrease,
   Future<void> Function() increaseAsync,
 }) useBearStore() {
-  final state = useStore<BearState>();
+  final state = useStore<BearState, BearActions>();
 
   return (
     state: state,
-    increase: () => (bearStore as dynamic).increasePopulation(),
-    decrease: () => (bearStore as dynamic).decreasePopulation(),
-    increaseAsync: () => (bearStore as dynamic).increaseBearPopulationAsync(),
+    increase: () => bearStore.actions.increasePopulation(),
+    decrease: () => bearStore.actions.decreasePopulation(),
+    increaseAsync: () => bearStore.actions.increaseBearPopulationAsync(),
   );
 }
 
@@ -75,8 +100,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Zustand Demo',
       theme: ThemeData(primarySwatch: Colors.blue),
-      // Wrap the app with the StoreProvider
-      home: StoreProvider<BearState>(store: bearStore, child: const HomePage()),
+      // Wrap the app with the StoreWithActionsProvider
+      home: StoreProvider<BearState, BearActions>(
+        store: bearStore,
+        child: const HomePage(),
+      ),
     );
   }
 }
