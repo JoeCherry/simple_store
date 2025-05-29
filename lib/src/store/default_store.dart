@@ -13,7 +13,6 @@ class StoreWithActions<T, A extends StoreActions<T>> {
 
   T get state => _store.state;
   void setState(T Function(T currentState) updater) => _store.setState(updater);
-  void setStateRaw(T nextState) => _store.setStateRaw(nextState);
   Function subscribe(StoreListener<T> listener) => _store.subscribe(listener);
   void destroy() => _store.destroy();
   U select<U>(Selector<T, U> selector) => _store.select(selector);
@@ -65,29 +64,6 @@ class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
   @override
   void setState(T Function(T currentState) updater) {
     final nextState = updater(_state);
-    if (nextState == _state) return;
-
-    final previousState = _state;
-    _state = nextState;
-
-    if (_isNotifying) return;
-
-    _isNotifying = true;
-    try {
-      // First notify Flutter's change notifier system
-      notifyListeners();
-
-      // Then notify our custom listeners
-      for (final listener in _listeners) {
-        listener(_state, previousState);
-      }
-    } finally {
-      _isNotifying = false;
-    }
-  }
-
-  @override
-  void setStateRaw(T nextState) {
     if (nextState == _state) return;
 
     final previousState = _state;

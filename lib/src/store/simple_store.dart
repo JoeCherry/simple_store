@@ -12,9 +12,6 @@ abstract class SimpleStore<T> {
   /// Set state using a function that receives the current state
   void setState(T Function(T currentState) updater);
 
-  /// Replace the entire state
-  void setStateRaw(T nextState);
-
   /// Add a listener that will be called when the state changes
   Function subscribe(StoreListener<T> listener);
 
