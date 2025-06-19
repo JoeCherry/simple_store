@@ -6,6 +6,7 @@ import 'package:simple_store/src/store/default_store.dart';
 
 /// Hook to use a global store - returns the entire store (state + actions) like Zustand
 /// For selecting specific parts of state, use useGlobalStoreSelector instead
+/// Automatically manages store references to prevent memory leaks
 StoreWithActions<T, A> useGlobalStore<T, A extends StoreActions<T>>(
   String key,
 ) {
@@ -19,8 +20,12 @@ StoreWithActions<T, A> useGlobalStore<T, A extends StoreActions<T>>(
       state.value = newState;
     });
 
-    return () => unsubscribe();
-  }, [store]);
+    return () {
+      unsubscribe();
+      // Release the store reference when the widget is disposed
+      releaseGlobalStore<T, A>(key);
+    };
+  }, [store, key]);
 
   // Return a reactive store with the current state
   return StoreWithActions<T, A>(
@@ -57,8 +62,12 @@ U useGlobalStoreSelector<T, A extends StoreActions<T>, U>(
       }
     });
 
-    return () => unsubscribe();
-  }, [store, ...(dependencies ?? [])]);
+    return () {
+      unsubscribe();
+      // Release the store reference when the widget is disposed
+      releaseGlobalStore<T, A>(key);
+    };
+  }, [store, key, ...(dependencies ?? [])]);
 
   return selectedState.value;
 }
@@ -66,6 +75,13 @@ U useGlobalStoreSelector<T, A extends StoreActions<T>, U>(
 /// Hook to get setState function for a global store
 Function useGlobalStoreSetState<T, A extends StoreActions<T>>(String key) {
   final store = getGlobalStore<T, A>(key);
+
+  useEffect(() {
+    return () {
+      // Release the store reference when the widget is disposed
+      releaseGlobalStore<T, A>(key);
+    };
+  }, [key]);
 
   return useCallback((T Function(T) updater) {
     store.setState(updater);
@@ -75,6 +91,14 @@ Function useGlobalStoreSetState<T, A extends StoreActions<T>>(String key) {
 /// Hook to get actions for a global store
 A useGlobalStoreActions<T, A extends StoreActions<T>>(String key) {
   final store = getGlobalStore<T, A>(key);
+
+  useEffect(() {
+    return () {
+      // Release the store reference when the widget is disposed
+      releaseGlobalStore<T, A>(key);
+    };
+  }, [key]);
+
   return store.actions;
 }
 
