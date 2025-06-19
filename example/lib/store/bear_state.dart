@@ -1,6 +1,5 @@
 import 'package:simple_store/simple_store.dart';
 
-// Shared state class for both examples
 class BearState {
   final int bears;
   final bool isLoading;
@@ -24,7 +23,6 @@ class BearState {
   int get hashCode => bears.hashCode ^ isLoading.hashCode;
 }
 
-// Shared actions class for both examples
 class BearActions extends StoreActions<BearState> {
   BearActions(super.store);
 

@@ -66,27 +66,47 @@ class CounterActions extends StoreActions<CounterState> {
   }
 }
 
-// 3. Create a global store
-final counterStore = createGlobalStore<CounterState, CounterActions>(
-  key: 'counter',
-  state: (store) => const CounterState(count: 0),
-  createActions: (store) => CounterActions(store),
-);
+// 3. Create a global store initialization function
+StoreWithActions<CounterState, CounterActions> initializeCounterStore() {
+  return initializeGlobalStore<CounterState, CounterActions>(
+    key: 'counter',
+    state: (store) => const CounterState(count: 0),
+    createActions: (store) => CounterActions(store),
+  );
+}
 
-// 4. Use in your widgets (no provider needed!)
+// 4. Initialize at app startup (in main())
+void main() {
+  // Initialize global stores explicitly
+  initializeCounterStore();
+  
+  runApp(MyApp());
+}
+
+// 5. Use in your widgets (no provider needed!)
 class CounterWidget extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final count = useGlobalStore<CounterState, CounterActions>('counter')
-        .select((state) => state.count);
-    final actions = useGlobalStoreActions<CounterState, CounterActions>('counter');
+    // Get the entire store (state + actions)
+    final store = useGlobalStore<CounterState, CounterActions>('counter');
+    
+    // Or use a selector to get specific state
+    final count = useGlobalStore<CounterState, CounterActions>(
+      'counter',
+      (state) => state.count,
+    );
     
     return Column(
       children: [
-        Text('Count: $count'),
+        Text('Count: ${store.state.count}'),
+        Text('Count (selector): ${count.state}'),
         ElevatedButton(
-          onPressed: actions.increment,
+          onPressed: store.actions.increment,
           child: Text('Increment'),
+        ),
+        ElevatedButton(
+          onPressed: count.actions.decrement,
+          child: Text('Decrement'),
         ),
       ],
     );
@@ -120,17 +140,25 @@ class MyApp extends StatelessWidget {
 class CounterWidget extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final count = useStore<CounterState, CounterActions>()
-        .select((state) => state.count);
-    final setState = useStoreSetState<CounterState, CounterActions>();
+    // Get the entire store (state + actions)
+    final store = useStore<CounterState, CounterActions>();
+    
+    // Or use a selector to get specific state
+    final count = useStore<CounterState, CounterActions>(
+      (state) => state.count,
+    );
     
     return Column(
       children: [
-        Text('Count: $count'),
+        Text('Count: ${store.state.count}'),
+        Text('Count (selector): ${count.state}'),
         ElevatedButton(
-          onPressed: () => setState((state) => 
-            state.copyWith(count: state.count + 1)),
+          onPressed: store.actions.increment,
           child: Text('Increment'),
+        ),
+        ElevatedButton(
+          onPressed: count.actions.decrement,
+          child: Text('Decrement'),
         ),
       ],
     );
@@ -142,11 +170,9 @@ class CounterWidget extends HookWidget {
 
 ### Global Store API
 
+- `initializeGlobalStore<T, A>()` - Initialize a global store (idempotent)
 - `createGlobalStore<T, A>()` - Create and register a global store
-- `useGlobalStore<T, A>(key)` - Hook to access global store state
-- `useGlobalStoreSelector<T, A, U>(key, selector)` - Hook to access selected state
-- `useGlobalStoreActions<T, A>(key)` - Hook to access store actions
-- `useGlobalStoreSetState<T, A>(key)` - Hook to get setState function
+- `useGlobalStore<T, A>(key, [selector])` - Hook to access global store (state + actions)
 - `getGlobalStore<T, A>(key)` - Direct store access
 - `hasGlobalStore(key)` - Check if store exists
 - `removeGlobalStore(key)` - Remove a store
@@ -156,9 +182,7 @@ class CounterWidget extends HookWidget {
 
 - `createStore<T, A>()` - Create a store
 - `StoreProvider<T, A>` - Widget to provide store to descendants
-- `useStore<T, A>()` - Hook to access store state
-- `useStoreSelector<T, A, U>(selector)` - Hook to access selected state
-- `useStoreSetState<T, A>()` - Hook to get setState function
+- `useStore<T, A>([selector])` - Hook to access store (state + actions)
 
 ## Advanced Usage
 
@@ -166,15 +190,19 @@ class CounterWidget extends HookWidget {
 
 ```dart
 // Only re-render when specific parts of state change
-final bears = useGlobalStoreSelector<BearState, BearActions, int>(
+final bears = useGlobalStore<BearState, BearActions>(
   'bearStore',
   (state) => state.bears,
 );
 
-final isLoading = useGlobalStoreSelector<BearState, BearActions, bool>(
+final isLoading = useGlobalStore<BearState, BearActions>(
   'bearStore',
   (state) => state.isLoading,
 );
+
+// Access actions from the selected store
+bears.actions.increasePopulation();
+isLoading.actions.setLoading(true);
 ```
 
 ### Direct Store Access (Zustand-like)
@@ -197,13 +225,12 @@ final currentBears = store.state.bears;
   void Function() increase,
   void Function() decrease,
 }) useBearStore() {
-  final state = useGlobalStore<BearState, BearActions>('bearStore');
-  final actions = useGlobalStoreActions<BearState, BearActions>('bearStore');
+  final store = useGlobalStore<BearState, BearActions>('bearStore');
 
   return (
-    state: state,
-    increase: () => actions.increasePopulation(),
-    decrease: () => actions.decreasePopulation(),
+    state: store.state,
+    increase: () => store.actions.increasePopulation(),
+    decrease: () => store.actions.decreasePopulation(),
   );
 }
 ```

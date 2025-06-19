@@ -4,6 +4,8 @@ import 'package:simple_store/src/store/store_actions.dart';
 
 typedef StateCreator<T, StoreApi> = T Function(StoreApi store);
 
+typedef ValueListener<T> = void Function(T value);
+
 /// A wrapper class that provides type-safe access to store actions
 class StoreWithActions<T, A extends StoreActions<T>> {
   final SimpleStore<T> _store;
@@ -41,28 +43,21 @@ StoreWithActions<T, A> createStore<T, A extends StoreActions<T>>({
 }
 
 class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
-  T? _state;
+  late final ValueNotifier<T> _notifier;
   final List<StoreListener<T>> _listeners = [];
+  bool _initialized = false;
   bool _isNotifying = false;
 
   @override
-  T get state {
-    final internalState = _state;
-
-    if (internalState == null) {
-      throw StateError(
-        'Store has not been initialized. Call initialize() first.',
-      );
-    }
-    return internalState;
-  }
+  T get state => _notifier.value;
 
   @override
   void initialize(T initialState) {
-    if (_state != null) {
+    if (_initialized) {
       throw StateError('Store has already been initialized.');
     }
-    _state = initialState;
+    _notifier = ValueNotifier<T>(initialState);
+    _initialized = true;
   }
 
   @override
@@ -81,29 +76,16 @@ class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
 
   @override
   void setState(T Function(T currentState) updater) {
-    final internalState = _state;
-
-    if (internalState == null) {
-      throw StateError(
-        'Store has not been initialized. Call initialize() first.',
-      );
-    }
-    final nextState = updater(internalState);
-    if (nextState == internalState) return;
-
-    final previousState = internalState;
-    _state = nextState;
-
+    final previousState = _notifier.value;
+    final nextState = updater(previousState);
+    if (nextState == previousState) return;
+    _notifier.value = nextState;
     if (_isNotifying) return;
-
     _isNotifying = true;
     try {
-      // First notify Flutter's change notifier system
       notifyListeners();
-
-      // Then notify our custom listeners
       for (final listener in _listeners) {
-        listener(internalState, previousState);
+        listener(nextState, previousState);
       }
     } finally {
       _isNotifying = false;
@@ -113,37 +95,30 @@ class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
   @override
   Function subscribe(StoreListener<T> listener) {
     _listeners.add(listener);
-    return () => _listeners.remove(listener);
+    // Also listen to ValueNotifier for Flutter widget rebuilds
+    void valueListener() => listener(_notifier.value, _notifier.value);
+    _notifier.addListener(valueListener);
+    return () {
+      _listeners.remove(listener);
+      _notifier.removeListener(valueListener);
+    };
   }
 
   @override
   void destroy() {
     _listeners.clear();
+    _notifier.dispose();
     dispose();
   }
 
   @override
   U select<U>(Selector<T, U> selector) {
-    final state = _state;
-
-    if (state == null) {
-      throw StateError(
-        'Store has not been initialized. Call initialize() first.',
-      );
-    }
-    return selector(state);
+    return selector(_notifier.value);
   }
 
   @override
   StateGetter<T> getState() {
-    final state = _state;
-
-    if (state == null) {
-      throw StateError(
-        'Store has not been initialized. Call initialize() first.',
-      );
-    }
-    return () => state;
+    return () => _notifier.value;
   }
 
   @override

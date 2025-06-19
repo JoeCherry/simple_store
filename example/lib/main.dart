@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:simple_store/simple_store.dart';
+import 'package:simple_store_example/store/bear_stores.dart';
 import 'provider_example.dart';
 import 'global_example.dart';
 
-// Main app entry point
 void main() {
+  initializeBearStore();
+
   runApp(const MyApp());
 }
 
@@ -55,11 +56,11 @@ class HomePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.settings, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        const Text(
+                        Icon(Icons.settings, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text(
                           'Provider-based Store',
                           style: TextStyle(
                             fontSize: 18,
@@ -105,11 +106,11 @@ class HomePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.public, color: Colors.green),
-                        const SizedBox(width: 8),
-                        const Text(
+                        Icon(Icons.public, color: Colors.green),
+                        SizedBox(width: 8),
+                        Text(
                           'Global Store (Zustand-like)',
                           style: TextStyle(
                             fontSize: 18,

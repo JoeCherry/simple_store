@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'bear_state.dart';
+import '../store/bear_state.dart';
 
 // Shared UI component for displaying bear state
 class BearStateDisplay extends StatelessWidget {

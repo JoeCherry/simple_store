@@ -7,9 +7,10 @@ final bearStore = createStore<BearState, BearActions>(
   createActions: (store) => BearActions(store),
 );
 
-// Global store instance
-final globalBearStore = createGlobalStore<BearState, BearActions>(
-  key: 'bearStore',
-  state: (store) => const BearState(bears: 0, isLoading: false),
-  createActions: (store) => BearActions(store),
-);
+StoreWithActions<BearState, BearActions> initializeBearStore() {
+  return createGlobalStore<BearState, BearActions>(
+    key: 'bearStore',
+    state: (store) => const BearState(bears: 0, isLoading: false),
+    createActions: (store) => BearActions(store),
+  );
+}

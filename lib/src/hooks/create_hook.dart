@@ -1,6 +1,5 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:simple_store/simple_store.dart';
-import 'package:simple_store/src/store/store_actions.dart';
 
 Function createHook<T, A extends StoreActions<T>, HookReturnType>(
   HookReturnType Function(StoreWithActions<T, A> store) hookCreator,

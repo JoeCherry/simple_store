@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:simple_store/simple_store.dart';
-import 'shared/bear_hooks.dart';
-import 'shared/bear_stores.dart';
-import 'shared/bear_ui_components.dart';
-import 'shared/bear_state.dart';
+import 'store/bear_stores.dart';
+import 'components/bear_ui_components.dart';
+import 'store/bear_state.dart';
 
-// Provider-based store example page
+class ProviderBasedExample extends StatelessWidget {
+  const ProviderBasedExample({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StoreProvider<BearState, BearActions>(
+      store: bearStore,
+      child: const ProviderBasedPage(),
+    );
+  }
+}
+
 class ProviderBasedPage extends HookWidget {
   const ProviderBasedPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final store = useBearStore();
+    final store = useStore<BearState, BearActions>();
 
     return Scaffold(
       appBar: AppBar(
@@ -26,22 +36,22 @@ class ProviderBasedPage extends HookWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Header
-            Card(
+            const Card(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    const Icon(Icons.settings, size: 48, color: Colors.blue),
-                    const SizedBox(height: 8),
-                    const Text(
+                    Icon(Icons.settings, size: 48, color: Colors.blue),
+                    SizedBox(height: 8),
+                    Text(
                       'Provider-based Store',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       'This example uses StoreProvider to wrap the widget tree',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey),
@@ -63,26 +73,14 @@ class ProviderBasedPage extends HookWidget {
 
             // Controls using shared component
             BearControls(
-              onDecrease: store.decrease,
-              onIncrease: store.increase,
-              onIncreaseAsync: store.increaseAsync,
+              onDecrease: () => store.actions.decreasePopulation(),
+              onIncrease: () => store.actions.increasePopulation(),
+              onIncreaseAsync: () =>
+                  store.actions.increaseBearPopulationAsync(),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-// Provider-based example with StoreProvider wrapper
-class ProviderBasedExample extends StatelessWidget {
-  const ProviderBasedExample({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return StoreProvider<BearState, BearActions>(
-      store: bearStore,
-      child: const ProviderBasedPage(),
     );
   }
 }
