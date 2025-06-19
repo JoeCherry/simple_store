@@ -1,80 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:simple_store/simple_store.dart';
+import 'provider_example.dart';
+import 'global_example.dart';
 
-// 1. Define your store state
-class BearState {
-  final int bears;
-  final bool isLoading;
-
-  const BearState({required this.bears, required this.isLoading});
-
-  BearState copyWith({int? bears, bool? isLoading}) {
-    return BearState(
-        bears: bears ?? this.bears, isLoading: isLoading ?? this.isLoading);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is BearState &&
-        other.bears == bears &&
-        other.isLoading == isLoading;
-  }
-
-  @override
-  int get hashCode => bears.hashCode ^ isLoading.hashCode;
-}
-
-// Define the actions class
-class BearActions extends StoreActions<BearState> {
-  BearActions(super.store);
-
-  void increasePopulation([int by = 1]) {
-    setState((state) => state.copyWith(bears: state.bears + by));
-  }
-
-  void decreasePopulation([int by = 1]) {
-    setState((state) => state.copyWith(bears: state.bears - by));
-  }
-
-  void setLoading(bool isLoading) {
-    setState((state) => state.copyWith(isLoading: isLoading));
-  }
-
-  Future<void> increaseBearPopulationAsync() async {
-    setLoading(true);
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-    increasePopulation(5);
-    setLoading(false);
-  }
-}
-
-// 2. Create the store using the type-safe API
-final bearStore = createStore<BearState, BearActions>(
-  state: (store) => const BearState(bears: 0, isLoading: false),
-  createActions: (store) => BearActions(store),
-);
-
-// 3. Create a custom hook for this specific store
-({
-  BearState state,
-  void Function() increase,
-  void Function() decrease,
-  Future<void> Function() increaseAsync,
-}) useBearStore() {
-  final state = useStore<BearState, BearActions>();
-
-  return (
-    state: state,
-    increase: () => bearStore.actions.increasePopulation(),
-    decrease: () => bearStore.actions.decreasePopulation(),
-    increaseAsync: () => bearStore.actions.increaseBearPopulationAsync(),
-  );
-}
-
-// 5. Usage in a Flutter app
+// Main app entry point
 void main() {
   runApp(const MyApp());
 }
@@ -85,58 +14,154 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Zustand Demo',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      // Wrap the app with the StoreProvider
-      home: StoreProvider<BearState, BearActions>(
-        store: bearStore,
-        child: const HomePage(),
+      title: 'Simple Store Examples',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
       ),
+      home: const HomePage(),
     );
   }
 }
 
-// 6. Using the hooks in a component
-class HomePage extends HookWidget {
+// Main navigation page
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Use our custom bear store hook
-    final store = useBearStore();
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Bear Store')),
-      body: Center(
+      appBar: AppBar(
+        title: const Text('Simple Store Examples'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Number of bears: ${store.state.bears}',
-                style: Theme.of(context).textTheme.headlineMedium),
-            if (store.state.bears >= 5)
-              const Text('That\'s a lot of bears!',
-                  style: TextStyle(
-                      color: Colors.red, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            if (store.state.isLoading)
-              const CircularProgressIndicator()
-            else
-              const SizedBox.shrink(),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                    onPressed: store.decrease, child: const Text('Decrease')),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                    onPressed: store.increase, child: const Text('Increase')),
-              ],
+            const Text(
+              'Choose an example to see different approaches:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 32),
+
+            // Provider-based example card
+            Card(
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.settings, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Provider-based Store',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Traditional Flutter approach using StoreProvider to wrap the widget tree.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const ProviderBasedExample(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.arrow_forward),
+                        label: const Text('View Provider Example'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             const SizedBox(height: 16),
-            ElevatedButton(
-                onPressed: store.increaseAsync,
-                child: const Text('Add bears async')),
+
+            // Global store example card
+            Card(
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.public, color: Colors.green),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Global Store (Zustand-like)',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'No provider needed! Access stores directly from anywhere in your app.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const GlobalStorePage(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.arrow_forward),
+                        label: const Text('View Global Store Example'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const Spacer(),
+
+            // Footer
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Both examples demonstrate the same functionality but with different approaches. '
+                  'The global store approach is more similar to Zustand and requires no provider setup.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontStyle: FontStyle.italic),
+                ),
+              ),
+            ),
           ],
         ),
       ),
