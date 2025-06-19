@@ -1,26 +1,32 @@
 import 'package:flutter/foundation.dart';
 import 'package:simple_store/src/store/simple_store.dart';
-import 'package:simple_store/src/store/store_actions.dart';
 
-typedef StateCreator<T, StoreApi> = T Function(StoreApi store);
+typedef SetState<T> = void Function(T Function(T currentState) updater);
 
 typedef ValueListener<T> = void Function(T value);
 
-/// A wrapper class that provides type-safe access to store actions
-/// Can be made reactive by passing a reactiveState parameter
-class StoreWithActions<T, A extends StoreActions<T>> {
+/// A simplified store that provides Zustand-like API
+/// Combines state and actions in a single object
+class SimpleStoreWithActions<T> {
   final SimpleStore<T> _store;
   final T? _reactiveState;
+  final T _stateWithActions;
+  final SetState<T> _setState;
 
-  final A actions;
-
-  /// Create a store with actions
-  /// If reactiveState is provided, the state getter will return that instead of the store's state
-  StoreWithActions(this._store, this.actions, [this._reactiveState]);
+  SimpleStoreWithActions(
+    this._store,
+    this._stateWithActions,
+    this._setState, [
+    this._reactiveState,
+  ]);
 
   T get state => _reactiveState ?? _store.state;
 
-  void setState(T Function(T currentState) updater) => _store.setState(updater);
+  /// Access the state with actions
+  T get actions => _stateWithActions;
+
+  /// Set state function (Zustand-like)
+  void setState(T Function(T currentState) updater) => _setState(updater);
 
   Function subscribe(StoreListener<T> listener) => _store.subscribe(listener);
 
@@ -33,24 +39,27 @@ class StoreWithActions<T, A extends StoreActions<T>> {
   ChangeNotifier get api => _store.api;
 }
 
-/// A function that creates a store from a state creator function and actions
-/// This is the main entry point for creating a store, inspired by Zustand's API
-StoreWithActions<T, A> createStore<T, A extends StoreActions<T>>({
-  required StateCreator<T, SimpleStore<T>> state,
-  required A Function(SimpleStore<T>) createActions,
+/// Simplified store creation - Zustand-like API
+/// Combines state and actions in a single function
+SimpleStoreWithActions<T> create<T>(
+  T Function(SetState<T> set) creator, {
   SimpleStore<T>? store,
 }) {
   // Create a mutable state holder
   final internalStore = store ?? DefaultStore<T>();
 
-  // Use the creator function to initialize the store
-  final initialState = state(internalStore);
-  internalStore.initialize(initialState);
+  // Create the setState function
+  void setState(T Function(T currentState) updater) {
+    internalStore.setState(updater);
+  }
 
-  // Create the strongly-typed actions object
-  final typedActions = createActions(internalStore);
+  // Use the creator function to create the initial state with actions
+  final stateWithActions = creator(setState);
 
-  return StoreWithActions<T, A>(internalStore, typedActions);
+  // Initialize the store with the state
+  internalStore.initialize(stateWithActions);
+
+  return SimpleStoreWithActions<T>(internalStore, stateWithActions, setState);
 }
 
 class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {

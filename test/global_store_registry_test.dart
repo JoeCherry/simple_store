@@ -8,28 +8,26 @@ void main() {
     });
 
     test('should register and retrieve a store', () {
-      final store = createGlobalStore<TestState, TestActions>(
+      final store = createGlobalStoreSimple<TestState>(
         key: 'test',
-        state: (store) => const TestState(count: 0),
-        createActions: (store) => TestActions(store),
+        creator: (set) => const TestState(count: 0),
       );
 
       expect(hasGlobalStore('test'), isTrue);
-      expect(getGlobalStore<TestState, TestActions>('test'), equals(store));
+      expect(getGlobalStoreSimple<TestState>('test'), equals(store));
     });
 
     test('should throw error when accessing non-existent store', () {
       expect(
-        () => getGlobalStore<TestState, TestActions>('non-existent'),
+        () => getGlobalStoreSimple<TestState>('non-existent'),
         throwsStateError,
       );
     });
 
     test('should remove store correctly', () {
-      createGlobalStore<TestState, TestActions>(
+      createGlobalStoreSimple<TestState>(
         key: 'test',
-        state: (store) => const TestState(count: 0),
-        createActions: (store) => TestActions(store),
+        creator: (set) => const TestState(count: 0),
       );
 
       expect(hasGlobalStore('test'), isTrue);
@@ -39,16 +37,14 @@ void main() {
     });
 
     test('should clear all stores', () {
-      createGlobalStore<TestState, TestActions>(
+      createGlobalStoreSimple<TestState>(
         key: 'test1',
-        state: (store) => const TestState(count: 0),
-        createActions: (store) => TestActions(store),
+        creator: (set) => const TestState(count: 0),
       );
 
-      createGlobalStore<TestState, TestActions>(
+      createGlobalStoreSimple<TestState>(
         key: 'test2',
-        state: (store) => const TestState(count: 0),
-        createActions: (store) => TestActions(store),
+        creator: (set) => const TestState(count: 0),
       );
 
       expect(globalStoreRegistry.length, equals(2));
@@ -75,16 +71,4 @@ class TestState {
 
   @override
   int get hashCode => count.hashCode;
-}
-
-class TestActions extends StoreActions<TestState> {
-  TestActions(super.store);
-
-  void increment() {
-    setState((state) => state.copyWith(count: state.count + 1));
-  }
-
-  void decrement() {
-    setState((state) => state.copyWith(count: state.count - 1));
-  }
 }

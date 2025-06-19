@@ -1,18 +1,13 @@
-// hook
-export 'src/hooks/use_store.dart';
-export 'src/hooks/use_store_selector.dart';
-export 'src/hooks/use_store_set_state.dart';
-export 'src/hooks/use_store_state.dart';
-export 'src/hooks/create_hook.dart';
-
-// global store hooks
-export 'src/hooks/use_global_store.dart';
-
-// store
-export 'src/store/default_store.dart';
+// Core store functionality
 export 'src/store/simple_store.dart';
-export 'src/store/store_actions.dart';
-export 'src/store/global_store_registry.dart';
+export 'src/store/default_store.dart'
+    show create, SimpleStoreWithActions, SetState;
 
-// store_provider
+// Hooks for Flutter integration
+export 'src/hooks/use_store.dart';
+
+// Provider integration (for feature-scoped stores)
 export 'src/store_provider.dart';
+
+// Global store registry
+export 'src/store/global_store_registry.dart';

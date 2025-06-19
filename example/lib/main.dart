@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:simple_store_example/store/bear_stores.dart';
-import 'provider_example.dart';
+import 'package:simple_store/simple_store.dart';
 import 'global_example.dart';
+import 'provider_example.dart';
+import 'store/bear_stores.dart';
 
 void main() {
-  initializeBearStore();
-
+  // Register the global store at app startup
+  createGlobalStoreSimple<BearStore>(
+    key: 'simpleBearStore',
+    creator: (set) => BearStore(0, false),
+  );
   runApp(const MyApp());
 }
 
@@ -15,9 +19,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Simple Store Examples',
+      title: 'Simple Store Example',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
       home: const HomePage(),
@@ -25,7 +29,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Main navigation page
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -41,126 +44,60 @@ class HomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Choose an example to see different approaches:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-
-            // Provider-based example card
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.settings, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Text(
-                          'Provider-based Store',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Traditional Flutter approach using StoreProvider to wrap the widget tree.',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const ProviderBasedExample(),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.arrow_forward),
-                        label: const Text('View Provider Example'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Global store example card
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.public, color: Colors.green),
-                        SizedBox(width: 8),
-                        Text(
-                          'Global Store (Zustand-like)',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'No provider needed! Access stores directly from anywhere in your app.',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const GlobalStorePage(),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.arrow_forward),
-                        label: const Text('View Global Store Example'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const Spacer(),
-
-            // Footer
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Both examples demonstrate the same functionality but with different approaches. '
-                  'The global store approach is more similar to Zustand and requires no provider setup.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontStyle: FontStyle.italic),
+                child: Column(
+                  children: [
+                    Icon(Icons.store, size: 48, color: Colors.deepPurple),
+                    SizedBox(height: 8),
+                    Text(
+                      'Simple Store Examples',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Choose an example to see different approaches to state management.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GlobalStorePage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.public),
+              label: const Text('Global Store Example'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProviderBasedExample(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.account_tree),
+              label: const Text('Feature-scoped Store Example'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.all(16),
               ),
             ),
           ],
