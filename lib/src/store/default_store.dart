@@ -47,6 +47,7 @@ class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
   final List<StoreListener<T>> _listeners = [];
   bool _initialized = false;
   bool _isNotifying = false;
+  bool _destroyed = false;
 
   @override
   T get state => _notifier.value;
@@ -84,7 +85,9 @@ class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
     _isNotifying = true;
     try {
       notifyListeners();
-      for (final listener in _listeners) {
+      // Create a copy to avoid concurrent modification
+      final listenersCopy = List<StoreListener<T>>.from(_listeners);
+      for (final listener in listenersCopy) {
         listener(nextState, previousState);
       }
     } finally {
@@ -95,20 +98,20 @@ class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
   @override
   Function subscribe(StoreListener<T> listener) {
     _listeners.add(listener);
-    // Also listen to ValueNotifier for Flutter widget rebuilds
-    void valueListener() => listener(_notifier.value, _notifier.value);
-    _notifier.addListener(valueListener);
     return () {
       _listeners.remove(listener);
-      _notifier.removeListener(valueListener);
     };
   }
 
   @override
   void destroy() {
+    if (!_initialized || _destroyed) return;
+
     _listeners.clear();
     _notifier.dispose();
     dispose();
+    _destroyed = true;
+    _initialized = false;
   }
 
   @override
