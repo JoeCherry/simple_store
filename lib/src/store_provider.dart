@@ -12,10 +12,7 @@ class StoreProvider<T, A extends StoreActions<T>> extends InheritedWidget {
   ) {
     final provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<T, A>>();
-    assert(
-      provider != null,
-      'No StoreWithActionsProvider<$T, $A> found in context',
-    );
+    assert(provider != null, 'No StoreProvider<$T, $A> found in context');
     return provider!.store;
   }
 

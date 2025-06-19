@@ -7,18 +7,29 @@ typedef StateCreator<T, StoreApi> = T Function(StoreApi store);
 typedef ValueListener<T> = void Function(T value);
 
 /// A wrapper class that provides type-safe access to store actions
+/// Can be made reactive by passing a reactiveState parameter
 class StoreWithActions<T, A extends StoreActions<T>> {
   final SimpleStore<T> _store;
+  final T? _reactiveState;
+
   final A actions;
 
-  StoreWithActions(this._store, this.actions);
+  /// Create a store with actions
+  /// If reactiveState is provided, the state getter will return that instead of the store's state
+  StoreWithActions(this._store, this.actions, [this._reactiveState]);
 
-  T get state => _store.state;
+  T get state => _reactiveState ?? _store.state;
+
   void setState(T Function(T currentState) updater) => _store.setState(updater);
+
   Function subscribe(StoreListener<T> listener) => _store.subscribe(listener);
+
   void destroy() => _store.destroy();
+
   U select<U>(Selector<T, U> selector) => _store.select(selector);
+
   StateGetter<T> getState() => _store.getState();
+
   ChangeNotifier get api => _store.api;
 }
 
@@ -39,7 +50,7 @@ StoreWithActions<T, A> createStore<T, A extends StoreActions<T>>({
   // Create the strongly-typed actions object
   final typedActions = createActions(internalStore);
 
-  return StoreWithActions(internalStore, typedActions);
+  return StoreWithActions<T, A>(internalStore, typedActions);
 }
 
 class DefaultStore<T> extends ChangeNotifier implements SimpleStore<T> {
