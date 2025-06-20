@@ -29,15 +29,18 @@ A minimal, type-safe, and memory-safe state management solution for Dart/Flutter
 ```dart
 class CounterStore {
   final int count;
-  CounterStore(this.count);
+  final SetState<CounterStore> _setState;
 
-  CounterStore copyWith({int? count}) => CounterStore(count ?? this.count);
+  CounterStore(this.count, this._setState);
 
-  void increment(SetState<CounterStore> set) {
-    set((state) => state.copyWith(count: state.count + 1));
+  CounterStore copyWith({int? count}) => CounterStore(count ?? this.count, _setState);
+
+  void increment() {
+    _setState((state) => state.copyWith(count: state.count + 1));
   }
-  void decrement(SetState<CounterStore> set) {
-    set((state) => state.copyWith(count: state.count - 1));
+  
+  void decrement() {
+    _setState((state) => state.copyWith(count: state.count - 1));
   }
 }
 ```
@@ -48,8 +51,8 @@ class CounterStore {
 ```dart
 // Create a global store
 final globalCounterStore = createGlobalStoreSimple<CounterStore>(
-  key: 'CounterStore', // Use type name as key
-  creator: (set) => CounterStore(0),
+  key: 'CounterStore',
+  creator: (set) => CounterStore(0, set),
 );
 
 // Use anywhere in your app - much cleaner!
@@ -57,13 +60,12 @@ class CounterWidget extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final store = useGlobalStore<CounterStore>('CounterStore');
-    final setState = useGlobalStoreSetState<CounterStore>('CounterStore');
 
     return Column(
       children: [
         Text('Count: ${store.count}'),
         ElevatedButton(
-          onPressed: () => store.increment(setState), // Pass setState to action
+          onPressed: () => store.increment(), // Call actions directly!
           child: Text('Increment'),
         ),
       ],
@@ -75,7 +77,7 @@ class CounterWidget extends HookWidget {
 #### Feature-scoped Store (isolated to a flow)
 ```dart
 // Create a local store for a specific feature
-final accountFlowStore = create<AccountStore>((set) => AccountStore());
+final accountFlowStore = create<AccountStore>((set) => AccountStore(initialState, set));
 
 // Wrap your feature with StoreProvider
 class AccountFlow extends StatelessWidget {
@@ -93,13 +95,12 @@ class AccountFlowWidget extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final store = useProvidedStore<AccountStore>();
-    final setState = useProvidedStoreSetState<AccountStore>();
 
     return Column(
       children: [
         Text('Account: ${store.name}'),
         ElevatedButton(
-          onPressed: () => store.updateName(setState, 'New Name'), // Pass setState to action
+          onPressed: () => store.updateName('New Name'), // Call actions directly!
           child: Text('Update'),
         ),
       ],
@@ -124,17 +125,14 @@ class AccountFlowWidget extends HookWidget {
 
 ### General Store Hooks (for direct store instances)
 - `useStore<T>(store)` — Hook to get the current state from a store instance
-- `useSimpleStoreSetState<T>(store)` — Hook to get the setState function from a store instance
 - `useStoreSelector<T, U>(store, selector, {equality?})` — Hook to select a value from a store instance with optional equality comparison
 
 ### Provided Store Hooks (for feature-scoped stores)
 - `useProvidedStore<T>()` — Hook to get state from a provider-scoped store
-- `useProvidedStoreSetState<T>()` — Hook to get setState from a provider-scoped store
 - `useProvidedStoreSelector<T, U>(selector, {equality?})` — Hook to select from a provider-scoped store with optional equality comparison
 
 ### Global Store Hooks (for app-wide stores)
 - `useGlobalStore<T>(key)` — Hook to get state from global store by key
-- `useGlobalStoreSetState<T>(key)` — Hook to get setState from global store by key
 - `useGlobalStoreSelector<T, U>(key, selector, {equality?})` — Hook to select from global store by key with optional equality comparison
 
 ### Store Creation
@@ -150,6 +148,7 @@ class AccountFlowWidget extends HookWidget {
 - Inspired by Zustand, but fully type-safe and Dart/Flutter idiomatic
 - Automatic cleanup of unused global stores
 - Flexible scoping for different use cases
+- Actions are built into the store - no need to manage setState separately
 
 ## License
 MIT
