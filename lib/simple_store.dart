@@ -5,6 +5,9 @@ export 'src/store/simple_store_instance.dart';
 
 // Hooks for Flutter integration
 export 'src/hooks/use_store.dart';
+export 'src/hooks/use_global_store.dart';
+export 'src/hooks/use_provided_store.dart';
+export 'src/hooks/use_store_selector.dart';
 
 // Provider integration (for feature-scoped stores)
 export 'src/store_provider.dart';

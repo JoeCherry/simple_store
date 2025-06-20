@@ -21,7 +21,7 @@ class ProviderBasedPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = useStore<BearStore>();
+    final store = useProvidedStore<BearStore>();
 
     return Scaffold(
       appBar: AppBar(

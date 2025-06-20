@@ -57,13 +57,13 @@ class CounterWidget extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final store = useGlobalStore<CounterStore>('CounterStore');
-    // Or use type-based access: useGlobalStoreByType<CounterStore>();
+    final setState = useGlobalStoreSetState<CounterStore>('CounterStore');
 
     return Column(
       children: [
         Text('Count: ${store.count}'),
         ElevatedButton(
-          onPressed: () => store.increment(), // No setState needed!
+          onPressed: () => store.increment(setState), // Pass setState to action
           child: Text('Increment'),
         ),
       ],
@@ -92,13 +92,14 @@ class AccountFlow extends StatelessWidget {
 class AccountFlowWidget extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final store = useStore<AccountStore>();
+    final store = useProvidedStore<AccountStore>();
+    final setState = useProvidedStoreSetState<AccountStore>();
 
     return Column(
       children: [
         Text('Account: ${store.name}'),
         ElevatedButton(
-          onPressed: () => store.updateName('New Name'), // No setState needed!
+          onPressed: () => store.updateName(setState, 'New Name'), // Pass setState to action
           child: Text('Update'),
         ),
       ],
@@ -121,25 +122,28 @@ class AccountFlowWidget extends HookWidget {
 
 ## API
 
-### Global Stores
+### General Store Hooks (for direct store instances)
+- `useStore<T>(store)` — Hook to get the current state from a store instance
+- `useSimpleStoreSetState<T>(store)` — Hook to get the setState function from a store instance
+- `useStoreSelector<T, U>(store, selector, {equality?})` — Hook to select a value from a store instance with optional equality comparison
+
+### Provided Store Hooks (for feature-scoped stores)
+- `useProvidedStore<T>()` — Hook to get state from a provider-scoped store
+- `useProvidedStoreSetState<T>()` — Hook to get setState from a provider-scoped store
+- `useProvidedStoreSelector<T, U>(selector, {equality?})` — Hook to select from a provider-scoped store with optional equality comparison
+
+### Global Store Hooks (for app-wide stores)
+- `useGlobalStore<T>(key)` — Hook to get state from global store by key
+- `useGlobalStoreSetState<T>(key)` — Hook to get setState from global store by key
+- `useGlobalStoreSelector<T, U>(key, selector, {equality?})` — Hook to select from global store by key with optional equality comparison
+
+### Store Creation
 - `create<T>(T Function(SetState<T> set))` — Create a local store
 - `createGlobalStoreSimple<T>({required String key, required T Function(SetState<T> set) creator})` — Create a global store
-- `useGlobalStore<T>(key)` — Hook to get state from global store by key
-- `useGlobalStoreByType<T>()` — Hook to get state from global store by type (convention-based)
-- `useGlobalStoreSetState<T>(key)` — Hook to get setState from global store by key
-- `useGlobalStoreSetStateByType<T>()` — Hook to get setState from global store by type
-- `useGlobalStoreSelector<T, U>(key, selector)` — Hook to select from global store by key
-- `useGlobalStoreSelectorByType<T, U>(selector)` — Hook to select from global store by type
-- `useSimpleStore(store)` — Hook to get the current state (for direct store instances)
-- `useSimpleStoreSetState(store)` — Hook to get the setState function (for direct store instances)
-- `useSimpleStoreSelector(store, selector)` — Hook to select a value (for direct store instances)
-- `getGlobalStoreSimple<T>(key)` — Access a global store by key (low-level API)
 
-### Feature-scoped Stores
+### Provider Integration
 - `StoreProvider<T>` — Widget to scope a store to a feature
-- `useStore<T>()` — Hook to get state from provider
-- `useStoreSetState<T>()` — Hook to get setState from provider
-- `useStoreSelector<T, U>(selector)` — Hook to select from provider
+- `getGlobalStoreSimple<T>(key)` — Access a global store by key (low-level API)
 
 ## Why?
 - Less boilerplate
