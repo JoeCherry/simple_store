@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:simple_store/src/store/default_store.dart';
+import 'package:simple_store/src/store/simple_store_instance.dart';
 
 void main() {
   group('DefaultStore', () {
@@ -106,7 +107,7 @@ void main() {
     });
   });
 
-  group('SimpleStoreWithActions (Zustand-like API)', () {
+  group('SimpleStoreInstance', () {
     test('should create and update state', () {
       final store = create<TestState>(
         (set) => const TestState(count: 0, name: 'zustand'),

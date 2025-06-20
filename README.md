@@ -48,22 +48,22 @@ class CounterStore {
 ```dart
 // Create a global store
 final globalCounterStore = createGlobalStoreSimple<CounterStore>(
-  key: 'counter',
+  key: 'CounterStore', // Use type name as key
   creator: (set) => CounterStore(0),
 );
 
-// Use anywhere in your app
+// Use anywhere in your app - much cleaner!
 class CounterWidget extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final store = useSimpleStore(globalCounterStore);
-    final setStore = useSimpleStoreSetState(globalCounterStore);
+    final store = useGlobalStore<CounterStore>('CounterStore');
+    // Or use type-based access: useGlobalStoreByType<CounterStore>();
 
     return Column(
       children: [
         Text('Count: ${store.count}'),
         ElevatedButton(
-          onPressed: () => store.increment(setStore),
+          onPressed: () => store.increment(), // No setState needed!
           child: Text('Increment'),
         ),
       ],
@@ -93,13 +93,12 @@ class AccountFlowWidget extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final store = useStore<AccountStore>();
-    final setStore = useStoreSetState<AccountStore>();
 
     return Column(
       children: [
         Text('Account: ${store.name}'),
         ElevatedButton(
-          onPressed: () => store.updateName(setStore, 'New Name'),
+          onPressed: () => store.updateName('New Name'), // No setState needed!
           child: Text('Update'),
         ),
       ],
@@ -125,10 +124,16 @@ class AccountFlowWidget extends HookWidget {
 ### Global Stores
 - `create<T>(T Function(SetState<T> set))` — Create a local store
 - `createGlobalStoreSimple<T>({required String key, required T Function(SetState<T> set) creator})` — Create a global store
-- `useSimpleStore(store)` — Hook to get the current state
-- `useSimpleStoreSetState(store)` — Hook to get the setState function
-- `useSimpleStoreSelector(store, selector)` — Hook to select a value
-- `getGlobalStoreSimple<T>(key)` — Access a global store by key
+- `useGlobalStore<T>(key)` — Hook to get state from global store by key
+- `useGlobalStoreByType<T>()` — Hook to get state from global store by type (convention-based)
+- `useGlobalStoreSetState<T>(key)` — Hook to get setState from global store by key
+- `useGlobalStoreSetStateByType<T>()` — Hook to get setState from global store by type
+- `useGlobalStoreSelector<T, U>(key, selector)` — Hook to select from global store by key
+- `useGlobalStoreSelectorByType<T, U>(selector)` — Hook to select from global store by type
+- `useSimpleStore(store)` — Hook to get the current state (for direct store instances)
+- `useSimpleStoreSetState(store)` — Hook to get the setState function (for direct store instances)
+- `useSimpleStoreSelector(store, selector)` — Hook to select a value (for direct store instances)
+- `getGlobalStoreSimple<T>(key)` — Access a global store by key (low-level API)
 
 ### Feature-scoped Stores
 - `StoreProvider<T>` — Widget to scope a store to a feature

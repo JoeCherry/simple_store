@@ -1,12 +1,12 @@
 import 'package:flutter/widgets.dart';
-import 'package:simple_store/src/store/default_store.dart';
+import 'package:simple_store/src/store/simple_store_instance.dart';
 
 class StoreProvider<T> extends InheritedWidget {
-  final SimpleStoreWithActions<T> store;
+  final SimpleStoreInstance<T> store;
 
   const StoreProvider({super.key, required this.store, required super.child});
 
-  static SimpleStoreWithActions<T> of<T>(BuildContext context) {
+  static SimpleStoreInstance<T> of<T>(BuildContext context) {
     final provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<T>>();
     assert(provider != null, 'No StoreProvider<$T> found in context');

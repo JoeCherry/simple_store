@@ -1,11 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:simple_store/src/store/simple_store.dart';
-import 'package:simple_store/src/store/default_store.dart';
+import 'package:simple_store/simple_store.dart';
 
 /// A wrapper for simplified stores
 class SimpleStoreReference<T> {
-  final SimpleStoreWithActions<T> store;
+  final SimpleStoreInstance<T> store;
   final String key;
   int _referenceCount = 0;
   bool _isDestroyed = false;
@@ -68,7 +67,7 @@ class GlobalStoreRegistry {
   }
 
   /// Register a simplified store with a unique key
-  void registerSimple<T>(String key, SimpleStoreWithActions<T> store) {
+  void registerSimple<T>(String key, SimpleStoreInstance<T> store) {
     if (_simpleStores.containsKey(key)) {
       _simpleStores[key]!.store.destroy();
     }
@@ -79,13 +78,13 @@ class GlobalStoreRegistry {
   }
 
   /// Get a simplified store by key
-  SimpleStoreWithActions<T> getSimple<T>(String key) {
+  SimpleStoreInstance<T> getSimple<T>(String key) {
     if (_simpleStores.containsKey(key)) {
       final storeRef = _simpleStores[key]!;
       if (!storeRef.isDestroyed) {
         storeRef.incrementRef();
         _usageCount[key] = (_usageCount[key] ?? 0) + 1;
-        return storeRef.store as SimpleStoreWithActions<T>;
+        return storeRef.store as SimpleStoreInstance<T>;
       } else {
         _simpleStores.remove(key);
         _usageCount.remove(key);
@@ -158,12 +157,14 @@ class GlobalStoreRegistry {
 final globalStoreRegistry = GlobalStoreRegistry();
 
 /// Simplified global store creation - Zustand-like API
-SimpleStoreWithActions<T> createGlobalStoreSimple<T>({
-  required String key,
+SimpleStoreInstance<T> createGlobalStoreSimple<T>({
+  String? key,
   required T Function(SetState<T> set) creator,
   SimpleStore<T>? store,
+  Equality<T>? equality,
 }) {
-  final storeWithActions = create<T>(creator, store: store);
+  key ??= T.toString();
+  final storeWithActions = create<T>(creator, store: store, equality: equality);
   globalStoreRegistry.registerSimple(key, storeWithActions);
   return storeWithActions;
 }
@@ -175,7 +176,7 @@ Function createGlobalStoreCreatorSimple<T>({
   return () => createGlobalStoreSimple<T>(key: key, creator: creator);
 }
 
-SimpleStoreWithActions<T> getGlobalStoreSimple<T>(String key) {
+SimpleStoreInstance<T> getGlobalStoreSimple<T>(String key) {
   return globalStoreRegistry.getSimple<T>(key);
 }
 

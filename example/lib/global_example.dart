@@ -9,11 +9,11 @@ class GlobalStorePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Access the global store by key
-    final bearStore =
-        useSimpleStore(getGlobalStoreSimple<BearStore>('simpleBearStore'));
-    final setBearStore = useSimpleStoreSetState(
-        getGlobalStoreSimple<BearStore>('simpleBearStore'));
+    // Access the global store directly by key - much cleaner!
+    final bearStore = useGlobalStore<BearStore>('BearStore');
+
+    // Alternative: Access by type (convention-based)
+    // final bearStore = useGlobalStoreByType<BearStore>();
 
     return Scaffold(
       appBar: AppBar(
@@ -55,10 +55,9 @@ class GlobalStorePage extends HookWidget {
           ),
           const SizedBox(height: 24),
           BearControls(
-            onDecrease: () => bearStore.decreasePopulation(setBearStore),
-            onIncrease: () => bearStore.increasePopulation(setBearStore),
-            onIncreaseAsync: () =>
-                bearStore.increaseBearPopulationAsync(setBearStore),
+            onDecrease: () => bearStore.decreasePopulation(),
+            onIncrease: () => bearStore.increasePopulation(),
+            onIncreaseAsync: () => bearStore.increaseBearPopulationAsync(),
           ),
           const SizedBox(height: 24),
         ],

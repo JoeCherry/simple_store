@@ -5,10 +5,9 @@ import 'provider_example.dart';
 import 'store/bear_stores.dart';
 
 void main() {
-  // Register the global store at app startup
   createGlobalStoreSimple<BearStore>(
-    key: 'simpleBearStore',
-    creator: (set) => BearStore(0, false),
+    key: 'BearStore',
+    creator: (set) => BearStore(0, false, [], set),
   );
   runApp(const MyApp());
 }

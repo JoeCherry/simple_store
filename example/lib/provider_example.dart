@@ -22,7 +22,6 @@ class ProviderBasedPage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final store = useStore<BearStore>();
-    final setStore = useStoreSetState<BearStore>();
 
     return Scaffold(
       appBar: AppBar(
@@ -73,10 +72,9 @@ class ProviderBasedPage extends HookWidget {
 
             // Controls using shared component
             BearControls(
-              onDecrease: () => store.decreasePopulation(setStore),
-              onIncrease: () => store.increasePopulation(setStore),
-              onIncreaseAsync: () =>
-                  store.increaseBearPopulationAsync(setStore),
+              onDecrease: () => store.decreasePopulation(),
+              onIncrease: () => store.increasePopulation(),
+              onIncreaseAsync: () => store.increaseBearPopulationAsync(),
             ),
           ],
         ),
