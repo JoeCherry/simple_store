@@ -42,105 +42,153 @@ class SimpleStoreReference<T> {
 class GlobalStoreRegistry {
   static final GlobalStoreRegistry _instance = GlobalStoreRegistry._internal();
   factory GlobalStoreRegistry() => _instance;
+
+  final Map<String, SimpleStoreReference> _simpleStores = {};
+  bool _isDisposed = false;
+  bool _lifecycleListenerRegistered = false;
+
   GlobalStoreRegistry._internal() {
     _setupLifecycleListener();
   }
 
-  final Map<String, SimpleStoreReference> _simpleStores = {};
-  final Map<String, int> _usageCount = {};
-
   /// Set up Flutter lifecycle listener for automatic cleanup
   void _setupLifecycleListener() {
+    if (_lifecycleListenerRegistered) return;
+
     try {
-      if (WidgetsBinding.instance.isRootWidgetAttached) {
-        SystemChannels.lifecycle.setMessageHandler((String? message) async {
-          if (message == AppLifecycleState.paused.toString() ||
-              message == AppLifecycleState.detached.toString()) {
-            cleanupUnused();
-          }
-          return null;
-        });
-      }
+      SystemChannels.lifecycle.setMessageHandler(_handleLifecycleMessage);
+      _lifecycleListenerRegistered = true;
     } catch (e) {
       // Silently fail if Flutter is not initialized (e.g., in tests)
     }
   }
 
+  /// Handle lifecycle messages and cleanup
+  Future<String?> _handleLifecycleMessage(String? message) async {
+    if (_isDisposed) return null;
+
+    if (message == AppLifecycleState.paused.toString()) {
+      cleanupUnused();
+    }
+    // On detach, dispose the registry entirely
+    if (message == AppLifecycleState.detached.toString()) {
+      dispose();
+    }
+    return null;
+  }
+
+  /// Dispose the registry and clean up all resources
+  void dispose() {
+    if (_isDisposed) return;
+
+    _isDisposed = true;
+    clear();
+
+    // Remove the lifecycle listener
+    if (_lifecycleListenerRegistered) {
+      try {
+        SystemChannels.lifecycle.setMessageHandler(null);
+        _lifecycleListenerRegistered = false;
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+    }
+  }
+
   /// Register a simplified store with a unique key
   void registerSimple<T>(String key, SimpleStoreInstance<T> store) {
+    if (_isDisposed) return;
+
     if (_simpleStores.containsKey(key)) {
       _simpleStores[key]!.store.destroy();
     }
     final storeRef = SimpleStoreReference<T>(store, key);
     storeRef.incrementRef();
     _simpleStores[key] = storeRef;
-    _usageCount[key] = 1;
   }
 
   /// Get a simplified store by key
   SimpleStoreInstance<T> getSimple<T>(String key) {
-    if (_simpleStores.containsKey(key)) {
-      final storeRef = _simpleStores[key]!;
-      if (!storeRef.isDestroyed) {
-        storeRef.incrementRef();
-        _usageCount[key] = (_usageCount[key] ?? 0) + 1;
-        return storeRef.store as SimpleStoreInstance<T>;
-      } else {
-        _simpleStores.remove(key);
-        _usageCount.remove(key);
-      }
+    if (_isDisposed) {
+      throw StateError('GlobalStoreRegistry has been disposed');
     }
+
+    final storeRef = _simpleStores[key];
+    if (storeRef != null && !storeRef.isDestroyed) {
+      storeRef.incrementRef();
+
+      // More robust type checking
+      try {
+        return storeRef.store as SimpleStoreInstance<T>;
+      } catch (e) {
+        throw StateError(
+          'Type mismatch: expected SimpleStoreInstance<$T>, got ${storeRef.store.runtimeType}',
+        );
+      }
+    } else if (storeRef != null && storeRef.isDestroyed) {
+      _simpleStores.remove(key);
+    }
+
     throw StateError('No simple store found for key: $key');
   }
 
   /// Release a reference to a simplified store
   void releaseSimple<T>(String key) {
+    if (_isDisposed) return;
+
     final storeRef = _simpleStores[key];
     if (storeRef != null) {
       storeRef.decrementRef();
-      _usageCount[key] = (_usageCount[key] ?? 1) - 1;
+
       if (storeRef.isDestroyed) {
         _simpleStores.remove(key);
-        _usageCount.remove(key);
       }
     }
   }
 
   /// Check if a store exists
   bool has(String key) {
-    return _simpleStores.containsKey(key);
+    if (_isDisposed) return false;
+    return _simpleStores.containsKey(key) && !_simpleStores[key]!.isDestroyed;
   }
 
   /// Remove a store from the registry (force cleanup)
   void remove(String key) {
+    if (_isDisposed) return;
+
     final simpleStoreRef = _simpleStores[key];
     if (simpleStoreRef != null) {
       simpleStoreRef.store.destroy();
       _simpleStores.remove(key);
-      _usageCount.remove(key);
     }
   }
 
   /// Clear all stores
   void clear() {
+    if (_isDisposed) return;
+
     for (final storeRef in _simpleStores.values) {
       storeRef.store.destroy();
     }
     _simpleStores.clear();
-    _usageCount.clear();
   }
 
   /// Get all registered store keys
-  List<String> get keys => [..._simpleStores.keys];
+  List<String> get keys {
+    if (_isDisposed) return [];
+    return [..._simpleStores.keys];
+  }
 
   /// Get the number of registered stores
-  int get length => _simpleStores.length;
-
-  /// Get usage statistics for debugging
-  Map<String, int> get usageStats => Map.from(_usageCount);
+  int get length {
+    if (_isDisposed) return 0;
+    return _simpleStores.length;
+  }
 
   /// Clean up stores that have no references
   void cleanupUnused() {
+    if (_isDisposed) return;
+
     final keysToRemove = <String>[];
     for (final entry in _simpleStores.entries) {
       final storeRef = entry.value;
@@ -163,32 +211,60 @@ SimpleStoreInstance<T> createGlobalStoreSimple<T>({
   SimpleStore<T>? store,
   Equality<T>? equality,
 }) {
-  key ??= T.toString();
-  final storeWithActions = create<T>(creator, store: store, equality: equality);
-  globalStoreRegistry.registerSimple(key, storeWithActions);
-  return storeWithActions;
+  if (key == null || key.isEmpty) {
+    key = T.runtimeType.toString();
+    if (key == 'dynamic' || key.isEmpty) {
+      key = 'global_store_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
+  try {
+    final storeWithActions = create<T>(
+      creator,
+      store: store,
+      equality: equality,
+    );
+    globalStoreRegistry.registerSimple(key, storeWithActions);
+    return storeWithActions;
+  } catch (e) {
+    throw ArgumentError('Failed to create global store: $e');
+  }
 }
 
 Function createGlobalStoreCreatorSimple<T>({
   required String key,
   required T Function(SetState<T> set) creator,
 }) {
+  if (key.isEmpty) {
+    throw ArgumentError('Key cannot be empty');
+  }
+
   return () => createGlobalStoreSimple<T>(key: key, creator: creator);
 }
 
 SimpleStoreInstance<T> getGlobalStoreSimple<T>(String key) {
+  if (key.isEmpty) {
+    throw ArgumentError('Key cannot be empty');
+  }
+
   return globalStoreRegistry.getSimple<T>(key);
 }
 
 void releaseGlobalStoreSimple<T>(String key) {
+  if (key.isEmpty) return;
+
   globalStoreRegistry.releaseSimple<T>(key);
 }
 
 bool hasGlobalStore(String key) {
+  if (key.isEmpty) return false;
+
   return globalStoreRegistry.has(key);
 }
 
 void removeGlobalStore(String key) {
+  if (key.isEmpty) return;
+
   globalStoreRegistry.remove(key);
 }
 
@@ -198,4 +274,9 @@ void clearGlobalStores() {
 
 void cleanupUnusedGlobalStores() {
   globalStoreRegistry.cleanupUnused();
+}
+
+/// Dispose the global registry (call this when the app is shutting down)
+void disposeGlobalStoreRegistry() {
+  globalStoreRegistry.dispose();
 }

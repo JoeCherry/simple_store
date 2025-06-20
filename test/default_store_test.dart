@@ -8,7 +8,9 @@ void main() {
     late DefaultStore<TestState> store;
 
     setUp(() {
-      store = DefaultStore<TestState>();
+      store = DefaultStore<TestState>(
+        initialState: const TestState(count: 0, name: 'test'),
+      );
     });
 
     tearDown(() {
@@ -18,34 +20,18 @@ void main() {
     group('Initialization', () {
       test('should initialize with initial state', () {
         const initialState = TestState(count: 42, name: 'test');
-        store.initialize(initialState);
+        final testStore = DefaultStore<TestState>(initialState: initialState);
 
-        expect(store.state, equals(initialState));
-      });
-
-      test('should throw error when initialized twice', () {
-        const initialState = TestState(count: 0, name: 'test');
-        store.initialize(initialState);
-
-        expect(
-          () => store.initialize(TestState(count: 1, name: 'another')),
-          throwsStateError,
-        );
+        expect(testStore.state, equals(initialState));
+        testStore.destroy();
       });
 
       test('should have correct listener count after initialization', () {
-        const initialState = TestState(count: 0, name: 'test');
-        store.initialize(initialState);
-
         expect(store.listenerCount, equals(0));
       });
     });
 
     group('State Updates', () {
-      setUp(() {
-        store.initialize(const TestState(count: 0, name: 'update'));
-      });
-
       test('should update state', () {
         store.setState((state) => state.copyWith(count: 5));
         expect(store.state.count, equals(5));
@@ -59,10 +45,6 @@ void main() {
     });
 
     group('Listeners', () {
-      setUp(() {
-        store.initialize(const TestState(count: 0, name: 'listener'));
-      });
-
       test('should notify listeners on state change', () {
         bool called = false;
         store.subscribe((state, prev) {
@@ -84,10 +66,6 @@ void main() {
     });
 
     group('API Access', () {
-      setUp(() {
-        store.initialize(const TestState(count: 0, name: 'api'));
-      });
-
       test('should provide ChangeNotifier API', () {
         final api = store.api;
         expect(api, isA<ChangeNotifier>());

@@ -9,10 +9,6 @@ abstract class SimpleStore<T> {
   /// Get the current state
   T get state;
 
-  /// Initialize the store with an initial state
-  /// This must be called before any other store operations
-  void initialize(T initialState);
-
   /// Set state using a function that receives the current state
   void setState(T Function(T currentState) updater);
 

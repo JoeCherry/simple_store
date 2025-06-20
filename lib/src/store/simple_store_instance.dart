@@ -45,19 +45,41 @@ SimpleStoreInstance<T> create<T>(
   SimpleStore<T>? store,
   Equality<T>? equality,
 }) {
-  // Create a mutable state holder
-  final internalStore = store ?? DefaultStore<T>(equality: equality);
+  // Create a temporary state first (without actions)
+  T tempState;
+  try {
+    tempState = creator(
+      (_) =>
+          throw UnsupportedError(
+            'setState not available during initialization',
+          ),
+    );
+  } catch (e) {
+    throw ArgumentError('Failed to create initial state: $e');
+  }
+
+  // Create the store with the temporary state
+  final internalStore =
+      store ?? DefaultStore<T>(equality: equality, initialState: tempState);
 
   // Create the setState function
   void setState(T Function(T currentState) updater) {
     internalStore.setState(updater);
   }
 
-  // Use the creator function to create the initial state with actions
-  final stateWithActions = creator(setState);
+  // Create the final state with actions
+  T stateWithActions;
+  try {
+    stateWithActions = creator(setState);
+  } catch (e) {
+    internalStore.destroy();
+    throw ArgumentError('Failed to create state with actions: $e');
+  }
 
-  // Initialize the store with the state
-  internalStore.initialize(stateWithActions);
+  // Update the store with the final state (if different)
+  if (!identical(tempState, stateWithActions)) {
+    internalStore.setState((_) => stateWithActions);
+  }
 
   return SimpleStoreInstance<T>(internalStore, stateWithActions, setState);
 }

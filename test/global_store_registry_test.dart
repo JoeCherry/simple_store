@@ -1,7 +1,9 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:simple_store/simple_store.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('GlobalStoreRegistry', () {
     tearDown(() {
       clearGlobalStores();
@@ -51,6 +53,30 @@ void main() {
 
       clearGlobalStores();
       expect(globalStoreRegistry.length, equals(0));
+    });
+
+    test('should auto-dispose on AppLifecycleState.detached', () async {
+      // Register a store
+      createGlobalStoreSimple<TestState>(
+        key: 'test',
+        creator: (set) => const TestState(count: 0),
+      );
+      expect(hasGlobalStore('test'), isTrue);
+      expect(globalStoreRegistry.length, equals(1));
+
+      // Simulate lifecycle detach event using the recommended approach
+      await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .handlePlatformMessage(
+            SystemChannels.lifecycle.name,
+            SystemChannels.lifecycle.codec.encodeMessage(
+              'AppLifecycleState.detached',
+            ),
+            (_) {},
+          );
+
+      // The registry should now be disposed and all stores cleared
+      expect(globalStoreRegistry.length, equals(0));
+      expect(() => getGlobalStoreSimple<TestState>('test'), throwsStateError);
     });
   });
 }
