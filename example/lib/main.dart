@@ -5,7 +5,7 @@ import 'provider_example.dart';
 import 'store/bear_stores.dart';
 
 void main() {
-  createGlobalStoreSimple<BearStore>(
+  createGlobalStore<BearStore>(
     key: 'BearStore',
     creator: (set) => BearStore(0, false, [], set),
   );

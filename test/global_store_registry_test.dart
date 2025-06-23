@@ -10,27 +10,18 @@ void main() {
     });
 
     test('should register and retrieve a store', () {
-      final store = createGlobalStoreSimple<TestState>(
-        key: 'test',
-        creator: (set) => const TestState(count: 0),
-      );
+      final store = createGlobalStore<TestState>(key: 'test', creator: (set) => const TestState(count: 0));
 
       expect(hasGlobalStore('test'), isTrue);
-      expect(getGlobalStoreSimple<TestState>('test'), equals(store));
+      expect(getGlobalStore<TestState>('test'), equals(store));
     });
 
     test('should throw error when accessing non-existent store', () {
-      expect(
-        () => getGlobalStoreSimple<TestState>('non-existent'),
-        throwsStateError,
-      );
+      expect(() => getGlobalStore<TestState>('non-existent'), throwsStateError);
     });
 
     test('should remove store correctly', () {
-      createGlobalStoreSimple<TestState>(
-        key: 'test',
-        creator: (set) => const TestState(count: 0),
-      );
+      createGlobalStore<TestState>(key: 'test', creator: (set) => const TestState(count: 0));
 
       expect(hasGlobalStore('test'), isTrue);
 
@@ -39,15 +30,9 @@ void main() {
     });
 
     test('should clear all stores', () {
-      createGlobalStoreSimple<TestState>(
-        key: 'test1',
-        creator: (set) => const TestState(count: 0),
-      );
+      createGlobalStore<TestState>(key: 'test1', creator: (set) => const TestState(count: 0));
 
-      createGlobalStoreSimple<TestState>(
-        key: 'test2',
-        creator: (set) => const TestState(count: 0),
-      );
+      createGlobalStore<TestState>(key: 'test2', creator: (set) => const TestState(count: 0));
 
       expect(globalStoreRegistry.length, equals(2));
 
@@ -57,26 +42,20 @@ void main() {
 
     test('should auto-dispose on AppLifecycleState.detached', () async {
       // Register a store
-      createGlobalStoreSimple<TestState>(
-        key: 'test',
-        creator: (set) => const TestState(count: 0),
-      );
+      createGlobalStore<TestState>(key: 'test', creator: (set) => const TestState(count: 0));
       expect(hasGlobalStore('test'), isTrue);
       expect(globalStoreRegistry.length, equals(1));
 
       // Simulate lifecycle detach event using the recommended approach
-      await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .handlePlatformMessage(
-            SystemChannels.lifecycle.name,
-            SystemChannels.lifecycle.codec.encodeMessage(
-              'AppLifecycleState.detached',
-            ),
-            (_) {},
-          );
+      await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+        SystemChannels.lifecycle.name,
+        SystemChannels.lifecycle.codec.encodeMessage('AppLifecycleState.detached'),
+        (_) {},
+      );
 
       // The registry should now be disposed and all stores cleared
       expect(globalStoreRegistry.length, equals(0));
-      expect(() => getGlobalStoreSimple<TestState>('test'), throwsStateError);
+      expect(() => getGlobalStore<TestState>('test'), throwsStateError);
     });
   });
 }

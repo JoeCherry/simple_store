@@ -38,7 +38,6 @@ class SimpleStoreReference<T> {
 }
 
 /// A global registry for storing and accessing stores without providers
-/// This enables Zustand-like direct store usage with automatic memory management
 class GlobalStoreRegistry {
   static final GlobalStoreRegistry _instance = GlobalStoreRegistry._internal();
   factory GlobalStoreRegistry() => _instance;
@@ -95,8 +94,7 @@ class GlobalStoreRegistry {
     }
   }
 
-  /// Register a simplified store with a unique key
-  void registerSimple<T>(String key, SimpleStoreInstance<T> store) {
+  void registerStore<T>(String key, SimpleStoreInstance<T> store) {
     if (_isDisposed) return;
 
     if (_simpleStores.containsKey(key)) {
@@ -107,8 +105,7 @@ class GlobalStoreRegistry {
     _simpleStores[key] = storeRef;
   }
 
-  /// Get a simplified store by key
-  SimpleStoreInstance<T> getSimple<T>(String key) {
+  SimpleStoreInstance<T> getStore<T>(String key) {
     if (_isDisposed) {
       throw StateError('GlobalStoreRegistry has been disposed');
     }
@@ -121,9 +118,7 @@ class GlobalStoreRegistry {
       try {
         return storeRef.store as SimpleStoreInstance<T>;
       } catch (e) {
-        throw StateError(
-          'Type mismatch: expected SimpleStoreInstance<$T>, got ${storeRef.store.runtimeType}',
-        );
+        throw StateError('Type mismatch: expected SimpleStoreInstance<$T>, got ${storeRef.store.runtimeType}');
       }
     } else if (storeRef != null && storeRef.isDestroyed) {
       _simpleStores.remove(key);
@@ -133,7 +128,7 @@ class GlobalStoreRegistry {
   }
 
   /// Release a reference to a simplified store
-  void releaseSimple<T>(String key) {
+  void releaseStore<T>(String key) {
     if (_isDisposed) return;
 
     final storeRef = _simpleStores[key];
@@ -204,8 +199,7 @@ class GlobalStoreRegistry {
 
 final globalStoreRegistry = GlobalStoreRegistry();
 
-/// Simplified global store creation - Zustand-like API
-SimpleStoreInstance<T> createGlobalStoreSimple<T>({
+SimpleStoreInstance<T> createGlobalStore<T>({
   String? key,
   required T Function(SetState<T> set) creator,
   SimpleStore<T>? store,
@@ -219,41 +213,26 @@ SimpleStoreInstance<T> createGlobalStoreSimple<T>({
   }
 
   try {
-    final storeWithActions = create<T>(
-      creator,
-      store: store,
-      equality: equality,
-    );
-    globalStoreRegistry.registerSimple(key, storeWithActions);
+    final storeWithActions = create<T>(creator, store: store, equality: equality);
+    globalStoreRegistry.registerStore(key, storeWithActions);
     return storeWithActions;
   } catch (e) {
     throw ArgumentError('Failed to create global store: $e');
   }
 }
 
-Function createGlobalStoreCreatorSimple<T>({
-  required String key,
-  required T Function(SetState<T> set) creator,
-}) {
+SimpleStoreInstance<T> getGlobalStore<T>(String key) {
   if (key.isEmpty) {
     throw ArgumentError('Key cannot be empty');
   }
 
-  return () => createGlobalStoreSimple<T>(key: key, creator: creator);
+  return globalStoreRegistry.getStore<T>(key);
 }
 
-SimpleStoreInstance<T> getGlobalStoreSimple<T>(String key) {
-  if (key.isEmpty) {
-    throw ArgumentError('Key cannot be empty');
-  }
-
-  return globalStoreRegistry.getSimple<T>(key);
-}
-
-void releaseGlobalStoreSimple<T>(String key) {
+void releaseGlobalStore<T>(String key) {
   if (key.isEmpty) return;
 
-  globalStoreRegistry.releaseSimple<T>(key);
+  globalStoreRegistry.releaseStore<T>(key);
 }
 
 bool hasGlobalStore(String key) {
@@ -276,7 +255,7 @@ void cleanupUnusedGlobalStores() {
   globalStoreRegistry.cleanupUnused();
 }
 
-/// Dispose the global registry (call this when the app is shutting down)
+/// Dispose the global registry
 void disposeGlobalStoreRegistry() {
   globalStoreRegistry.dispose();
 }
