@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:simple_store/simple_store.dart';
+import 'package:simple_store/src/store/utils/map_extension.dart';
 
 /// A wrapper for simplified stores
 class SimpleStoreReference<T> {
@@ -69,7 +70,7 @@ class GlobalStoreRegistry {
     if (message == AppLifecycleState.paused.toString()) {
       cleanupUnused();
     }
-    // On detach, dispose the registry entirely
+
     if (message == AppLifecycleState.detached.toString()) {
       dispose();
     }
@@ -97,9 +98,8 @@ class GlobalStoreRegistry {
   void registerStore<T>(String key, SimpleStoreInstance<T> store) {
     if (_isDisposed) return;
 
-    if (_simpleStores.containsKey(key)) {
-      _simpleStores[key]!.store.destroy();
-    }
+    _simpleStores.elementFor(key)?.store.destroy();
+
     final storeRef = SimpleStoreReference<T>(store, key);
     storeRef.incrementRef();
     _simpleStores[key] = storeRef;
@@ -114,7 +114,6 @@ class GlobalStoreRegistry {
     if (storeRef != null && !storeRef.isDestroyed) {
       storeRef.incrementRef();
 
-      // More robust type checking
       try {
         return storeRef.store as SimpleStoreInstance<T>;
       } catch (e) {
@@ -144,7 +143,7 @@ class GlobalStoreRegistry {
   /// Check if a store exists
   bool has(String key) {
     if (_isDisposed) return false;
-    return _simpleStores.containsKey(key) && !_simpleStores[key]!.isDestroyed;
+    return !(_simpleStores.elementFor(key)?.isDestroyed ?? true);
   }
 
   /// Remove a store from the registry (force cleanup)
