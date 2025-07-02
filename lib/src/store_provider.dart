@@ -9,8 +9,12 @@ class StoreProvider<T> extends InheritedWidget {
   static SimpleStoreInstance<T> of<T>(BuildContext context) {
     final provider =
         context.dependOnInheritedWidgetOfExactType<StoreProvider<T>>();
-    assert(provider != null, 'No StoreProvider<$T> found in context');
-    return provider!.store;
+
+    if (provider == null) {
+      throw StateError('No StoreProvider<$T> found in context');
+    }
+
+    return provider.store;
   }
 
   @override

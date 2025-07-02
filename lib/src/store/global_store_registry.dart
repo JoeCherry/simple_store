@@ -239,13 +239,9 @@ SimpleStoreInstance<T> createGlobalStore<T>({
   }
 
   try {
-    final storeWithActions = create<T>(
-      creator,
-      store: store,
-      equality: equality,
-    );
-    GlobalStoreRegistry.instance.registerStore(key, storeWithActions);
-    return storeWithActions;
+    final storeInstance = create<T>(creator, store: store, equality: equality);
+    GlobalStoreRegistry.instance.registerStore(key, storeInstance);
+    return storeInstance;
   } catch (e) {
     throw ArgumentError('Failed to create global store: $e');
   }
