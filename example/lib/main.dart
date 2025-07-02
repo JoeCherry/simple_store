@@ -5,6 +5,10 @@ import 'provider_example.dart';
 import 'store/bear_stores.dart';
 
 void main() {
+  // Initialize the global store registry
+  GlobalStoreRegistry.instance.initialize();
+
+  // Now create global stores
   createGlobalStore<BearStore>(
     key: 'BearStore',
     creator: (set) => BearStore(0, false, [], set),

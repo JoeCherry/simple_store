@@ -40,14 +40,31 @@ class SimpleStoreReference<T> {
 
 /// A global registry for storing and accessing stores without providers
 class GlobalStoreRegistry {
-  static final GlobalStoreRegistry _instance = GlobalStoreRegistry._internal();
-  factory GlobalStoreRegistry() => _instance;
+  static GlobalStoreRegistry? _instance;
+  static GlobalStoreRegistry get instance {
+    _instance ??= GlobalStoreRegistry._internal();
+    return _instance!;
+  }
+
+  /// Reset the singleton instance (mainly for testing)
+  static void reset() {
+    _instance?.dispose();
+    _instance = null;
+  }
 
   final Map<String, SimpleStoreReference> _simpleStores = {};
   bool _isDisposed = false;
   bool _lifecycleListenerRegistered = false;
+  bool _isInitialized = false;
 
-  GlobalStoreRegistry._internal() {
+  GlobalStoreRegistry._internal();
+
+  /// Initialize the registry with lifecycle management
+  /// Call this when your app starts to enable automatic cleanup
+  void initialize() {
+    if (_isDisposed || _isInitialized) return;
+
+    _isInitialized = true;
     _setupLifecycleListener();
   }
 
@@ -97,6 +114,11 @@ class GlobalStoreRegistry {
 
   void registerStore<T>(String key, SimpleStoreInstance<T> store) {
     if (_isDisposed) return;
+    if (!_isInitialized) {
+      throw StateError(
+        'GlobalStoreRegistry not initialized. Call initialize() first.',
+      );
+    }
 
     _simpleStores.elementFor(key)?.store.destroy();
 
@@ -109,6 +131,11 @@ class GlobalStoreRegistry {
     if (_isDisposed) {
       throw StateError('GlobalStoreRegistry has been disposed');
     }
+    if (!_isInitialized) {
+      throw StateError(
+        'GlobalStoreRegistry not initialized. Call initialize() first.',
+      );
+    }
 
     final storeRef = _simpleStores[key];
     if (storeRef != null && !storeRef.isDestroyed) {
@@ -117,7 +144,9 @@ class GlobalStoreRegistry {
       try {
         return storeRef.store as SimpleStoreInstance<T>;
       } catch (e) {
-        throw StateError('Type mismatch: expected SimpleStoreInstance<$T>, got ${storeRef.store.runtimeType}');
+        throw StateError(
+          'Type mismatch: expected SimpleStoreInstance<$T>, got ${storeRef.store.runtimeType}',
+        );
       }
     } else if (storeRef != null && storeRef.isDestroyed) {
       _simpleStores.remove(key);
@@ -196,8 +225,6 @@ class GlobalStoreRegistry {
   }
 }
 
-final globalStoreRegistry = GlobalStoreRegistry();
-
 SimpleStoreInstance<T> createGlobalStore<T>({
   String? key,
   required T Function(SetState<T> set) creator,
@@ -212,8 +239,12 @@ SimpleStoreInstance<T> createGlobalStore<T>({
   }
 
   try {
-    final storeWithActions = create<T>(creator, store: store, equality: equality);
-    globalStoreRegistry.registerStore(key, storeWithActions);
+    final storeWithActions = create<T>(
+      creator,
+      store: store,
+      equality: equality,
+    );
+    GlobalStoreRegistry.instance.registerStore(key, storeWithActions);
     return storeWithActions;
   } catch (e) {
     throw ArgumentError('Failed to create global store: $e');
@@ -225,36 +256,36 @@ SimpleStoreInstance<T> getGlobalStore<T>(String key) {
     throw ArgumentError('Key cannot be empty');
   }
 
-  return globalStoreRegistry.getStore<T>(key);
+  return GlobalStoreRegistry.instance.getStore<T>(key);
 }
 
 void releaseGlobalStore<T>(String key) {
   if (key.isEmpty) return;
 
-  globalStoreRegistry.releaseStore<T>(key);
+  GlobalStoreRegistry.instance.releaseStore<T>(key);
 }
 
 bool hasGlobalStore(String key) {
   if (key.isEmpty) return false;
 
-  return globalStoreRegistry.has(key);
+  return GlobalStoreRegistry.instance.has(key);
 }
 
 void removeGlobalStore(String key) {
   if (key.isEmpty) return;
 
-  globalStoreRegistry.remove(key);
+  GlobalStoreRegistry.instance.remove(key);
 }
 
 void clearGlobalStores() {
-  globalStoreRegistry.clear();
+  GlobalStoreRegistry.instance.clear();
 }
 
 void cleanupUnusedGlobalStores() {
-  globalStoreRegistry.cleanupUnused();
+  GlobalStoreRegistry.instance.cleanupUnused();
 }
 
 /// Dispose the global registry
 void disposeGlobalStoreRegistry() {
-  globalStoreRegistry.dispose();
+  GlobalStoreRegistry.reset();
 }

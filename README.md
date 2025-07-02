@@ -49,11 +49,18 @@ class CounterStore {
 
 #### Global Store (app-wide state)
 ```dart
-// Create a global store
-final globalCounterStore = createGlobalStoreSimple<CounterStore>(
-  key: 'CounterStore',
-  creator: (set) => CounterStore(0, set),
-);
+// Initialize the global store registry in your app's main function
+void main() {
+  globalStoreRegistry.initialize(); // Enable automatic lifecycle management (lazy initialization)
+  
+  // Create global stores
+  createGlobalStore<CounterStore>(
+    key: 'CounterStore',
+    creator: (set) => CounterStore(0, set),
+  );
+  
+  runApp(MyApp());
+}
 
 // Use anywhere in your app - much cleaner!
 class CounterWidget extends HookWidget {
@@ -137,11 +144,15 @@ class AccountFlowWidget extends HookWidget {
 
 ### Store Creation
 - `create<T>(T Function(SetState<T> set))` — Create a local store
-- `createGlobalStoreSimple<T>({required String key, required T Function(SetState<T> set) creator})` — Create a global store
+- `createGlobalStore<T>({required String key, required T Function(SetState<T> set) creator})` — Create a global store
+
+### Global Store Registry Management
+- `globalStoreRegistry` — Access the global registry instance (lazy initialization)
+- `globalStoreRegistry.initialize()` — Enable automatic lifecycle management
 
 ### Provider Integration
 - `StoreProvider<T>` — Widget to scope a store to a feature
-- `getGlobalStoreSimple<T>(key)` — Access a global store by key (low-level API)
+- `getGlobalStore<T>(key)` — Access a global store by key (low-level API)
 
 ## Why?
 - Less boilerplate

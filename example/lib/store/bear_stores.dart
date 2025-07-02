@@ -1,6 +1,5 @@
 import 'package:simple_store/simple_store.dart';
 
-// Zustand-like API - clean and simple!
 class BearStore {
   final int bears;
   final bool isLoading;
@@ -54,7 +53,6 @@ class BearStore {
   }
 }
 
-// Create simplified store - much less verbose!
 final simpleBearStore =
     create<BearStore>((set) => BearStore(0, false, [], set));
 
