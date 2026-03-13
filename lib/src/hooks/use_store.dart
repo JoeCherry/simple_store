@@ -6,6 +6,9 @@ T useStore<T>(SimpleStoreInstance<T> store) {
   final state = useState<T>(store.state);
 
   useEffect(() {
+    // M1: eagerly sync in case the store reference changed and state is stale
+    state.value = store.state;
+
     final unsubscribe = store.subscribe((newState, _) {
       state.value = newState;
     });
@@ -13,9 +16,8 @@ T useStore<T>(SimpleStoreInstance<T> store) {
     return () {
       try {
         unsubscribe();
-      } catch (e) {
+      } catch (_) {
         // Store might be destroyed, which is expected during cleanup
-        // No need to log or handle this error
       }
     };
   }, [store]);

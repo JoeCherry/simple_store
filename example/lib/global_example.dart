@@ -9,7 +9,7 @@ class GlobalStorePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Access the global store directly by key - much cleaner!
+    // Access the global store directly by key
     final bearStore = useGlobalStore<BearStore>('BearStore');
 
     // Alternative: Access by type (convention-based)

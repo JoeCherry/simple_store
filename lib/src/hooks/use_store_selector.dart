@@ -9,31 +9,35 @@ U useStoreSelector<T, U>(
   U Function(T state) selector, {
   Equality<U>? equality,
 }) {
-  final equalityChecker = equality ?? createEquality<U>();
+  // M3: memoize so a new Equality instance on every rebuild doesn't cause the
+  // effect to re-run (DeepEquality/ShallowEquality don't override ==).
+  final equalityChecker = useMemoized(
+    () => equality ?? createEquality<U>(),
+    [equality],
+  );
 
-  // Memoize the selector to prevent unnecessary re-subscriptions
-  final memoizedSelector = useCallback(selector, []);
+  // H6: hold the latest selector in a ref so the subscription callback always
+  // calls the current closure without effect re-runs when selector identity
+  // changes (inline lambdas are always new instances on each rebuild).
+  final selectorRef = useRef(selector);
+  selectorRef.value = selector;
 
-  // Calculate initial value
-  final initialValue = memoizedSelector(store.state);
-
-  // Cache the last selected value to avoid unnecessary updates
+  final initialValue = selector(store.state);
   final lastValueRef = useRef<U>(initialValue);
-
+  // M2: lastValueRef is only mutated inside the subscription handler — not
+  // unconditionally on every render — so it can't "jump ahead" due to a
+  // parent rebuild arriving between two subscription callbacks.
   final selectedValue = useState<U>(initialValue);
-  lastValueRef.value = initialValue;
 
   useEffect(() {
     void handleChange(T newState, T _) {
       try {
-        final newValue = memoizedSelector(newState);
-        // Only update if the value has actually changed (using deep equality)
+        final newValue = selectorRef.value(newState);
         if (!equalityChecker.equals(lastValueRef.value, newValue)) {
           lastValueRef.value = newValue;
           selectedValue.value = newValue;
         }
       } catch (e) {
-        // Log error but don't break the hook
         debugPrint('Error in store selector: $e');
       }
     }
@@ -42,12 +46,11 @@ U useStoreSelector<T, U>(
     return () {
       try {
         unsubscribe();
-      } catch (e) {
+      } catch (_) {
         // Store might be destroyed, which is expected during cleanup
-        // No need to log or handle this error
       }
     };
-  }, [store, memoizedSelector, equalityChecker]);
+  }, [store, equalityChecker]);
 
   return selectedValue.value;
 }

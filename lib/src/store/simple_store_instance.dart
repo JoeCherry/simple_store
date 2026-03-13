@@ -27,7 +27,8 @@ class SimpleStoreInstance<T> {
   /// Set state function (Zustand-like) - now accessible directly on the store
   SetState<T> get setState => _setState;
 
-  Function subscribe(StoreListener<T> listener) => _store.subscribe(listener);
+  VoidCallback subscribe(StoreListener<T> listener) =>
+      _store.subscribe(listener);
 
   void destroy() => _store.destroy();
 
@@ -38,8 +39,14 @@ class SimpleStoreInstance<T> {
   ChangeNotifier get api => _store.api;
 }
 
-/// Simplified store creation - Zustand-like API
-/// Combines state and actions in a single function
+/// Creates a [SimpleStoreInstance] using a Zustand-style creator function.
+///
+/// IMPORTANT: [creator] is called **twice** during initialization:
+/// 1. Once with a no-op `setState` to capture the initial state.
+/// 2. Once with the real `setState` to bind actions to the store.
+///
+/// Any side effects in [creator] (timers, callbacks, logging) will run twice.
+/// Keep [creator] pure — move side effects to actions that are called later.
 SimpleStoreInstance<T> create<T>(
   T Function(SetState<T> set) creator, {
   SimpleStore<T>? store,
@@ -49,13 +56,16 @@ SimpleStoreInstance<T> create<T>(
   T tempState;
   try {
     tempState = creator(
-      (_) =>
-          throw UnsupportedError(
-            'setState not available during initialization',
-          ),
+      (_) => throw UnsupportedError(
+        'setState not available during initialization',
+      ),
     );
-  } catch (e) {
-    throw ArgumentError('Failed to create initial state: $e');
+  } catch (e, stackTrace) {
+    // L8: preserve the original stack trace.
+    Error.throwWithStackTrace(
+      ArgumentError('Failed to create initial state: $e'),
+      stackTrace,
+    );
   }
 
   // Create the store with the temporary state
@@ -71,13 +81,23 @@ SimpleStoreInstance<T> create<T>(
   T stateWithActions;
   try {
     stateWithActions = creator(setState);
-  } catch (e) {
+  } catch (e, stackTrace) {
     internalStore.destroy();
-    throw ArgumentError('Failed to create state with actions: $e');
+    // L8: preserve the original stack trace.
+    Error.throwWithStackTrace(
+      ArgumentError('Failed to create state with actions: $e'),
+      stackTrace,
+    );
   }
 
-  // Update the store with the final state (if different)
-  if (!identical(tempState, stateWithActions)) {
+  // H5: use the same Equality instance as the store so the guard here is
+  // consistent with setState's equality check. Previously, identical() was
+  // used here but Equality.equals() was used inside setState — if two objects
+  // were structurally equal but not identical, identical() would trigger a
+  // setState that the store then silently rejected, leaving the store holding
+  // tempState while _stateWithActions held stateWithActions.
+  final eq = equality ?? createEquality<T>();
+  if (!eq.equals(tempState, stateWithActions)) {
     internalStore.setState((_) => stateWithActions);
   }
 

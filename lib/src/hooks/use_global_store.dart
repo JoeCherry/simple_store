@@ -10,6 +10,10 @@ import 'package:simple_store/src/store/simple_store_instance.dart';
 T useGlobalStore<T>(String? key) {
   final k = useKey<T>(key);
   final store = useMemoized(() => getGlobalStore<T>(k), [k]);
+  // H1: release the acquired reference when the widget unmounts or key changes
+  useEffect(() {
+    return () => releaseGlobalStore<T>(k);
+  }, [k]);
   return useStore<T>(store);
 }
 
@@ -17,11 +21,23 @@ T useGlobalStore<T>(String? key) {
 SetState<T> useGlobalStoreSetState<T>(String? key) {
   final k = useKey<T>(key);
   final store = useMemoized(() => getGlobalStore<T>(k), [k]);
+  // H1: release the acquired reference when the widget unmounts or key changes
+  useEffect(() {
+    return () => releaseGlobalStore<T>(k);
+  }, [k]);
   return useSimpleStoreSetState<T>(store);
 }
 
-U useGlobalStoreSelector<T, U>(String? key, U Function(T state) selector, {Equality<U>? equality}) {
+U useGlobalStoreSelector<T, U>(
+  String? key,
+  U Function(T state) selector, {
+  Equality<U>? equality,
+}) {
   final k = useKey<T>(key);
   final store = useMemoized(() => getGlobalStore<T>(k), [k]);
+  // H1: release the acquired reference when the widget unmounts or key changes
+  useEffect(() {
+    return () => releaseGlobalStore<T>(k);
+  }, [k]);
   return useStoreSelector<T, U>(store, selector, equality: equality);
 }

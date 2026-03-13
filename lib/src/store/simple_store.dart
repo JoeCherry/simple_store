@@ -13,18 +13,23 @@ abstract class SimpleStore<T> {
   void setState(T Function(T currentState) updater);
 
   /// Add a listener that will be called when the state changes
-  Function subscribe(StoreListener<T> listener);
+  VoidCallback subscribe(StoreListener<T> listener);
 
   /// Destroy the store and clean up resources
   void destroy();
 
-  /// Select a slice of state using a selector function
+  /// Synchronously reads and transforms the current state using [selector].
+  /// This is a one-shot read — it does NOT create a reactive subscription.
+  /// For reactive selection, use [useStoreSelector] in a widget.
   U select<U>(Selector<T, U> selector);
 
   /// Get a state getter function
   StateGetter<T> getState();
 
-  /// Get the raw store implementation (for advanced usage)
+  /// Returns the underlying [ChangeNotifier] for advanced framework integration.
+  /// WARNING: Do NOT call [dispose], [addListener], or [removeListener] directly
+  /// on this object — doing so bypasses the store's lifecycle management and
+  /// will corrupt internal state. Use [subscribe]/[destroy] instead.
   ChangeNotifier get api;
 
   /// Returns the current number of active listeners

@@ -100,9 +100,15 @@ class _EqualityAdapter<T> implements coll.Equality<T> {
   bool isValidKey(Object? o) => o is T;
 }
 
-/// Utility function to create appropriate equality for a type
+/// Creates the default [Equality] for type [T].
+///
+/// Returns [ShallowEquality], which uses reference identity ([identical]).
+/// This is the fastest and most predictable default — it prevents updates
+/// only when the exact same object instance is returned.
+///
+/// For collection types or value types with structural equality, pass an
+/// explicit equality (e.g., [DeepEquality], [ListEquality]) to [create] or
+/// [createGlobalStore].
 Equality<T> createEquality<T>() {
-  // For now, return deep equality as default
-  // In the future, this could be enhanced to auto-detect based on type
-  return DeepEquality<T>();
+  return ShallowEquality<T>();
 }
