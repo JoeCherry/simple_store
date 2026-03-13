@@ -89,7 +89,7 @@ class GlobalStoreRegistry {
     }
 
     if (message == AppLifecycleState.detached.toString()) {
-      // M7: clear stores but keep the registry usable — the engine may survive
+      // Clear stores but keep the registry usable — the engine may survive
       // the detached state on some platforms. Full dispose() is only triggered
       // by an explicit call to disposeGlobalStoreRegistry().
       _isInitialized = false;
@@ -102,13 +102,11 @@ class GlobalStoreRegistry {
   void dispose() {
     if (_isDisposed) return;
 
-    // C2: clear stores BEFORE setting _isDisposed = true.
-    // clear() guards on _isDisposed, so setting it first made clear() a no-op,
-    // leaking every store in the registry.
+    // clear() must be called before _isDisposed is set to true because
+    // clear() guards on _isDisposed.
     clear();
     _isDisposed = true;
 
-    // Remove the lifecycle listener
     if (_lifecycleListenerRegistered) {
       try {
         SystemChannels.lifecycle.setMessageHandler(null);
@@ -131,8 +129,6 @@ class GlobalStoreRegistry {
       );
     }
 
-    // H3: use _destroy() on the reference so the _isDestroyed flag is set
-    // before the store is removed, preventing any dangling ref from reusing it.
     _simpleStores.elementFor(key)?._destroy();
 
     final storeRef = SimpleStoreReference<T>(store, key);
@@ -152,8 +148,8 @@ class GlobalStoreRegistry {
 
     final storeRef = _simpleStores[key];
     if (storeRef != null && !storeRef.isDestroyed) {
-      // H2: cast BEFORE incrementing the ref count. If the cast fails we must
-      // not leave an orphaned increment that prevents cleanup.
+      // Cast before incrementing the ref count so a type mismatch doesn't
+      // leave an orphaned increment that prevents cleanup.
       final SimpleStoreInstance<T> typed;
       try {
         typed = storeRef.store as SimpleStoreInstance<T>;
@@ -259,8 +255,6 @@ SimpleStoreInstance<T> createGlobalStore<T>({
   Equality<T>? equality,
 }) {
   if (key == null || key.isEmpty) {
-    // M11: use T.toString() for a human-readable key. Throw if the name is
-    // indeterminate so callers are forced to provide an explicit key.
     final derived = T.toString();
     if (derived == 'dynamic' || derived.isEmpty) {
       throw ArgumentError(
@@ -277,7 +271,6 @@ SimpleStoreInstance<T> createGlobalStore<T>({
     GlobalStoreRegistry.instance.registerStore(key, storeInstance);
     return storeInstance;
   } catch (e, stackTrace) {
-    // L8: preserve the original stack trace instead of swallowing it.
     Error.throwWithStackTrace(
       ArgumentError('Failed to create global store: $e'),
       stackTrace,

@@ -9,24 +9,21 @@ U useStoreSelector<T, U>(
   U Function(T state) selector, {
   Equality<U>? equality,
 }) {
-  // M3: memoize so a new Equality instance on every rebuild doesn't cause the
-  // effect to re-run (DeepEquality/ShallowEquality don't override ==).
+  // Memoize so a new Equality instance on every rebuild doesn't cause the
+  // effect to re-run (equality implementations don't override ==).
   final equalityChecker = useMemoized(
     () => equality ?? createEquality<U>(),
     [equality],
   );
 
-  // H6: hold the latest selector in a ref so the subscription callback always
-  // calls the current closure without effect re-runs when selector identity
-  // changes (inline lambdas are always new instances on each rebuild).
+  // Hold the latest selector in a ref so the subscription callback always
+  // calls the current closure without causing effect re-runs when the selector
+  // identity changes (inline lambdas are always new instances on each rebuild).
   final selectorRef = useRef(selector);
   selectorRef.value = selector;
 
   final initialValue = selector(store.state);
   final lastValueRef = useRef<U>(initialValue);
-  // M2: lastValueRef is only mutated inside the subscription handler — not
-  // unconditionally on every render — so it can't "jump ahead" due to a
-  // parent rebuild arriving between two subscription callbacks.
   final selectedValue = useState<U>(initialValue);
 
   useEffect(() {

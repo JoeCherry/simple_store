@@ -6,7 +6,7 @@ T useStore<T>(SimpleStoreInstance<T> store) {
   final state = useState<T>(store.state);
 
   useEffect(() {
-    // M1: eagerly sync in case the store reference changed and state is stale
+    // Eagerly sync in case the store reference changed and state is stale
     state.value = store.state;
 
     final unsubscribe = store.subscribe((newState, _) {

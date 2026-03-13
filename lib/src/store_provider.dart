@@ -32,7 +32,6 @@ class StoreProvider<T> extends InheritedWidget {
     return provider.store;
   }
 
-  // L9: covariant StoreProvider<T> instead of raw StoreProvider
   @override
   bool updateShouldNotify(covariant StoreProvider<T> oldWidget) {
     return store != oldWidget.store;

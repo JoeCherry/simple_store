@@ -52,7 +52,6 @@ SimpleStoreInstance<T> create<T>(
   SimpleStore<T>? store,
   Equality<T>? equality,
 }) {
-  // Create a temporary state first (without actions)
   T tempState;
   try {
     tempState = creator(
@@ -61,41 +60,32 @@ SimpleStoreInstance<T> create<T>(
       ),
     );
   } catch (e, stackTrace) {
-    // L8: preserve the original stack trace.
     Error.throwWithStackTrace(
       ArgumentError('Failed to create initial state: $e'),
       stackTrace,
     );
   }
 
-  // Create the store with the temporary state
   final internalStore =
       store ?? DefaultStore<T>(equality: equality, initialState: tempState);
 
-  // Create the setState function
   void setState(T Function(T currentState) updater) {
     internalStore.setState(updater);
   }
 
-  // Create the final state with actions
   T stateWithActions;
   try {
     stateWithActions = creator(setState);
   } catch (e, stackTrace) {
     internalStore.destroy();
-    // L8: preserve the original stack trace.
     Error.throwWithStackTrace(
       ArgumentError('Failed to create state with actions: $e'),
       stackTrace,
     );
   }
 
-  // H5: use the same Equality instance as the store so the guard here is
-  // consistent with setState's equality check. Previously, identical() was
-  // used here but Equality.equals() was used inside setState — if two objects
-  // were structurally equal but not identical, identical() would trigger a
-  // setState that the store then silently rejected, leaving the store holding
-  // tempState while _stateWithActions held stateWithActions.
+  // Use the same Equality the store uses so this guard is consistent with
+  // setState's own equality check.
   final eq = equality ?? createEquality<T>();
   if (!eq.equals(tempState, stateWithActions)) {
     internalStore.setState((_) => stateWithActions);
